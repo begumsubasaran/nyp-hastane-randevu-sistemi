@@ -1,0 +1,15 @@
+# .NET derleme çıktıları
+bin/
+obj/
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+
+# İşletim sistemi dosyaları
+Thumbs.db
+desktop.ini
+.DS_Store
