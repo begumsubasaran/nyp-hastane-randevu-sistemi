@@ -40,7 +40,20 @@ nesne_programlama/
 └── src/
     └── RandevuSistemi/
         ├── RandevuSistemi.csproj
-        └── Program.cs           # Giriş noktası ve ana menü
+        ├── Program.cs           # Giriş noktası ve ana menü
+        └── Models/
+            └── Kullanicilar/    # Kullanıcı sınıf hiyerarşisi
+```
+
+## Kullanıcı sınıf hiyerarşisi
+
+```
+Kullanici (abstract)
+├── Hasta
+├── Calisan (abstract)
+│   ├── Doktor
+│   └── SaglikPersoneli
+└── Yonetici
 ```
 
 ## Geliştirme yol haritası
@@ -50,7 +63,7 @@ Her adım ayrı bir günde yapılır ve ayrı bir commit olarak gönderilir.
 | Gün | Adım | Durum |
 |---|---|---|
 | 1 | Proje iskeleti, README, .gitignore | ✅ |
-| 2 | Kullanıcı sınıf hiyerarşisi (`Kullanici`, `Hasta`, `Doktor`, `SaglikPersoneli`, `Yonetici`) | ⏳ |
+| 2 | Kullanıcı sınıf hiyerarşisi (`Kullanici`, `Hasta`, `Doktor`, `SaglikPersoneli`, `Yonetici`) | ✅ |
 | 3 | Kurum yapısı (`Kurum`, `Sube`, `Bolum`, `CalismaSaati`) | ⏳ |
 | 4 | Sağlık hizmetleri (`SaglikHizmeti`: süre, ücret) ve doktor uzmanlıkları | ⏳ |
 | 5 | Doktor uygunluk zaman dilimleri (`UygunlukDilimi`) | ⏳ |
