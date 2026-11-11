@@ -2,7 +2,7 @@
 
 Nesneye Dayalı Programlama dersi dönem projesi (Seçenek A).
 
-C# (.NET 9) ile yazılmış, konsol tabanlı bir **hastane/klinik randevu sistemi**.
+C# (.NET 9) ve **Windows Forms** ile yazılmış, masaüstü bir **hastane/klinik randevu sistemi**.
 Tek bir kliniği ve çok şubeli sağlık kuruluşlarını destekler. Veriler JSON dosyalarında saklanır.
 
 ## Özellikler (hedef)
@@ -25,27 +25,48 @@ Tek bir kliniği ve çok şubeli sağlık kuruluşlarını destekler. Veriler JS
 
 ## Çalıştırma
 
-Gerekli: [.NET 9 SDK](https://dotnet.microsoft.com/download)
+Gerekli: Windows ve [.NET 9 SDK](https://dotnet.microsoft.com/download)
 
 ```bash
 dotnet run --project src/RandevuSistemi
 ```
 
+Visual Studio 2022 ile: `src/RandevuSistemi/RandevuSistemi.csproj` dosyasını açıp **F5** ile çalıştırın.
+
 ## Proje klasör yapısı
 
 ```
 nesne_programlama/
-├── RandevuSistemi.slnx          # Çözüm dosyası (Visual Studio ile açılır)
+├── RandevuSistemi.slnx          # Çözüm dosyası
 ├── README.md
 └── src/
     └── RandevuSistemi/
         ├── RandevuSistemi.csproj
-        ├── Program.cs           # Giriş noktası ve ana menü
-        ├── GeciciTestler.cs     # Geliştirme sırasında sınıfları denemek için (geçici)
-        └── Models/
-            ├── Dogrulama.cs     # Ortak doğrulama metotları
+        ├── Program.cs           # Giriş noktası, ana pencereyi açar
+        ├── Arayuz/              # Windows Forms arayüzü
+        │   ├── AnaForm.cs       # Ana pencere: yan menü + içerik alanı
+        │   ├── Tema.cs          # Renkler, yazı tipleri, ortak görünüm ayarları
+        │   └── Ekranlar/        # Menüden açılan ekranlar (UserControl)
+        ├── Veri/
+        │   └── OrnekVeriler.cs  # Başlangıç için örnek kurum ve kullanıcılar
+        └── Models/              # İş mantığı sınıfları (arayüzden bağımsız)
+            ├── Dogrulama.cs
             ├── Kullanicilar/    # Kullanıcı sınıf hiyerarşisi
             └── Kurumlar/        # Kurum, şube, bölüm, çalışma saatleri
+```
+
+Model sınıfları arayüzden tamamen bağımsızdır: aynı sınıflar konsol, masaüstü
+veya web arayüzüyle değiştirilmeden kullanılabilir.
+
+## Kullanıcı sınıf hiyerarşisi
+
+```
+Kullanici (abstract)
+├── Hasta
+├── Calisan (abstract)
+│   ├── Doktor
+│   └── SaglikPersoneli
+└── Yonetici
 ```
 
 ## Kurum yapısı
@@ -60,17 +81,6 @@ Kurum (Hastane / Klinik / Tıp Merkezi)
 Tek şubeli bir klinik, 1 şubesi olan kurum olarak; çok şubeli bir hastane grubu ise
 birden fazla şubesi olan kurum olarak tanımlanır.
 
-## Kullanıcı sınıf hiyerarşisi
-
-```
-Kullanici (abstract)
-├── Hasta
-├── Calisan (abstract)
-│   ├── Doktor
-│   └── SaglikPersoneli
-└── Yonetici
-```
-
 ## Geliştirme yol haritası
 
 Her adım ayrı bir commit olarak gönderilir.
@@ -80,6 +90,7 @@ Her adım ayrı bir commit olarak gönderilir.
 | 1 | Proje iskeleti, README, .gitignore | ✅ |
 | 2 | Kullanıcı sınıf hiyerarşisi (`Kullanici`, `Hasta`, `Doktor`, `SaglikPersoneli`, `Yonetici`) | ✅ |
 | 3 | Kurum yapısı (`Kurum`, `Sube`, `Bolum`, `CalismaSaati`) | ✅ |
+| 3b | Windows Forms arayüzü: ana pencere, kurumlar ve kullanıcılar ekranları | ✅ |
 | 4 | Sağlık hizmetleri (`SaglikHizmeti`: süre, ücret) ve doktor uzmanlıkları | ⏳ |
 | 5 | Doktor uygunluk zaman dilimleri (`UygunlukDilimi`) | ⏳ |
 | 6 | Randevu modeli ve `RandevuDurumu` | ⏳ |
