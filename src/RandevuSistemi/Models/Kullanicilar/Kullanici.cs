@@ -157,10 +157,5 @@ public abstract class Kullanici
 
     // ---- Alt sınıfların da kullanabileceği yardımcı metot ----
 
-    protected static string BosOlamaz(string? deger, string alanAdi)
-    {
-        if (string.IsNullOrWhiteSpace(deger))
-            throw new ArgumentException($"{alanAdi} boş olamaz.");
-        return deger.Trim();
-    }
+    protected static string BosOlamaz(string? deger, string alanAdi) => Dogrulama.BosOlamaz(deger, alanAdi);
 }

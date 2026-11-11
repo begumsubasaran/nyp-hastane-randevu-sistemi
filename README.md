@@ -41,9 +41,24 @@ nesne_programlama/
     └── RandevuSistemi/
         ├── RandevuSistemi.csproj
         ├── Program.cs           # Giriş noktası ve ana menü
+        ├── GeciciTestler.cs     # Geliştirme sırasında sınıfları denemek için (geçici)
         └── Models/
-            └── Kullanicilar/    # Kullanıcı sınıf hiyerarşisi
+            ├── Dogrulama.cs     # Ortak doğrulama metotları
+            ├── Kullanicilar/    # Kullanıcı sınıf hiyerarşisi
+            └── Kurumlar/        # Kurum, şube, bölüm, çalışma saatleri
 ```
+
+## Kurum yapısı
+
+```
+Kurum (Hastane / Klinik / Tıp Merkezi)
+└── Sube (1 veya daha fazla)
+    ├── CalismaSaati (gün bazında açılış-kapanış)
+    └── Bolum (Kardiyoloji, Radyoloji, Laboratuvar...)
+```
+
+Tek şubeli bir klinik, 1 şubesi olan kurum olarak; çok şubeli bir hastane grubu ise
+birden fazla şubesi olan kurum olarak tanımlanır.
 
 ## Kullanıcı sınıf hiyerarşisi
 
@@ -58,13 +73,13 @@ Kullanici (abstract)
 
 ## Geliştirme yol haritası
 
-Her adım ayrı bir günde yapılır ve ayrı bir commit olarak gönderilir.
+Her adım ayrı bir commit olarak gönderilir.
 
-| Gün | Adım | Durum |
+| # | Adım | Durum |
 |---|---|---|
 | 1 | Proje iskeleti, README, .gitignore | ✅ |
 | 2 | Kullanıcı sınıf hiyerarşisi (`Kullanici`, `Hasta`, `Doktor`, `SaglikPersoneli`, `Yonetici`) | ✅ |
-| 3 | Kurum yapısı (`Kurum`, `Sube`, `Bolum`, `CalismaSaati`) | ⏳ |
+| 3 | Kurum yapısı (`Kurum`, `Sube`, `Bolum`, `CalismaSaati`) | ✅ |
 | 4 | Sağlık hizmetleri (`SaglikHizmeti`: süre, ücret) ve doktor uzmanlıkları | ⏳ |
 | 5 | Doktor uygunluk zaman dilimleri (`UygunlukDilimi`) | ⏳ |
 | 6 | Randevu modeli ve `RandevuDurumu` | ⏳ |
