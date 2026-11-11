@@ -2,7 +2,7 @@
 
 Nesneye Dayalı Programlama dersi dönem projesi (Seçenek A).
 
-C# (.NET 10) ile yazılmış, konsol tabanlı bir **hastane/klinik randevu sistemi**.
+C# (.NET 9) ile yazılmış, konsol tabanlı bir **hastane/klinik randevu sistemi**.
 Tek bir kliniği ve çok şubeli sağlık kuruluşlarını destekler. Veriler JSON dosyalarında saklanır.
 
 ## Özellikler (hedef)
@@ -25,7 +25,7 @@ Tek bir kliniği ve çok şubeli sağlık kuruluşlarını destekler. Veriler JS
 
 ## Çalıştırma
 
-Gerekli: [.NET 10 SDK](https://dotnet.microsoft.com/download)
+Gerekli: [.NET 9 SDK](https://dotnet.microsoft.com/download)
 
 ```bash
 dotnet run --project src/RandevuSistemi
