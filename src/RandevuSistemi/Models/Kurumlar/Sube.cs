@@ -26,7 +26,11 @@ public class Sube
         Adres = adres;
     }
 
-    public Guid Id { get; private set; } = Guid.NewGuid();
+    /// <summary>
+    /// Benzersiz kimlik. "internal set": sadece bu proje içinden (JSON'dan yüklerken aynı kimliği
+    /// geri vermek için) atanabilir; dışarıdan değiştirilemez.
+    /// </summary>
+    public Guid Id { get; internal set; } = Guid.NewGuid();
 
     /// <summary>Şubenin bağlı olduğu kurumun kimliği.</summary>
     public Guid KurumId { get; private set; }

@@ -34,8 +34,11 @@ public abstract class Kullanici
         SifreAta(sifre);
     }
 
-    /// <summary>Her kullanıcıya otomatik verilen benzersiz kimlik.</summary>
-    public Guid Id { get; private set; } = Guid.NewGuid();
+    /// <summary>
+    /// Her kullanıcıya otomatik verilen benzersiz kimlik. "internal set": sadece bu proje içinden
+    /// (JSON'dan yüklerken aynı kimliği geri vermek için) atanabilir.
+    /// </summary>
+    public Guid Id { get; internal set; } = Guid.NewGuid();
 
     public string Ad
     {
@@ -129,6 +132,16 @@ public abstract class Kullanici
         if (!SifreDogruMu(eskiSifre))
             throw new InvalidOperationException("Mevcut şifre hatalı.");
         SifreAta(yeniSifre);
+    }
+
+    /// <summary>
+    /// Şifrenin özeti (hash). Sadece veri dosyasına kaydetmek ve geri yüklemek için kullanılır;
+    /// "internal" olduğu için proje dışından erişilemez. Şifrenin kendisi hiçbir yerde saklanmaz.
+    /// </summary>
+    internal string SifreOzeti
+    {
+        get => _sifreHash;
+        set => _sifreHash = value;
     }
 
     private void SifreAta(string sifre)

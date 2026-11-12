@@ -30,7 +30,11 @@ public class Kurum
         Tur = tur;
     }
 
-    public Guid Id { get; private set; } = Guid.NewGuid();
+    /// <summary>
+    /// Benzersiz kimlik. "internal set": sadece bu proje içinden (JSON'dan yüklerken aynı kimliği
+    /// geri vermek için) atanabilir; dışarıdan değiştirilemez.
+    /// </summary>
+    public Guid Id { get; internal set; } = Guid.NewGuid();
 
     public string Ad
     {

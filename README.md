@@ -21,7 +21,7 @@ Tek bir kliniği ve çok şubeli sağlık kuruluşlarını destekler. Veriler JS
 | Kapsülleme (Encapsulation) | Alanlar `private`, erişim `property` ve doğrulamalı metotlarla |
 | Kalıtım (Inheritance) | `Kullanici` soyut sınıfından `Hasta`, `Doktor`, `SaglikPersoneli`, `Yonetici` türer |
 | Çok biçimlilik (Polymorphism) | Her rol kendi menüsünü ve yetkilerini `override` ile tanımlar |
-| Soyutlama (Abstraction) | `abstract` sınıflar ve `IRepository<T>` gibi arayüzler |
+| Soyutlama (Abstraction) | `abstract` sınıflar (`Kullanici`, `Calisan`) ve `IVeriDeposu` arayüzü |
 
 ## Çalıştırma
 
@@ -32,6 +32,16 @@ dotnet run --project src/RandevuSistemi
 ```
 
 Visual Studio 2022 ile: `src/RandevuSistemi/RandevuSistemi.csproj` dosyasını açıp **F5** ile çalıştırın.
+
+## Veri dosyası
+
+Veriler program kapatılırken ve ekran değiştirilirken otomatik olarak JSON dosyasına kaydedilir:
+
+```
+src/RandevuSistemi/bin/Debug/net9.0-windows/veri/randevu-sistemi.json
+```
+
+İlk açılışta (dosya yokken) örnek verilerle başlanır. Örnek verilere dönmek için bu dosyayı silmek yeterlidir.
 
 ## Proje klasör yapısı
 
@@ -49,8 +59,12 @@ nesne_programlama/
         │   ├── Ekranlar/        # Menüden açılan ekranlar (UserControl)
         │   └── Formlar/         # Ekleme/düzenleme pencereleri (dialog)
         ├── Veri/
-        │   ├── UygulamaVerisi.cs # Tüm verileri (kurumlar, kullanıcılar) bir arada tutar
-        │   └── OrnekVeriler.cs  # Başlangıç için örnek veriler
+        │   ├── UygulamaVerisi.cs   # Tüm verileri (kurumlar, kullanıcılar, randevular) bir arada tutar
+        │   ├── IVeriDeposu.cs      # Kaydetme/yükleme arayüzü (soyutlama)
+        │   ├── JsonVeriDeposu.cs   # IVeriDeposu'nun JSON dosyası ile uygulaması
+        │   ├── VeriDonusturucu.cs  # Model ↔ kayıt (DTO) dönüşümü
+        │   ├── Kayitlar/           # JSON'a yazılan sade kayıt sınıfları (DTO)
+        │   └── OrnekVeriler.cs     # İlk açılış için örnek veriler
         └── Models/              # İş mantığı sınıfları (arayüzden bağımsız)
             ├── Dogrulama.cs
             ├── Kullanicilar/    # Kullanıcı sınıf hiyerarşisi
@@ -115,7 +129,7 @@ Her adım ayrı bir commit olarak gönderilir.
 | 4 | Sağlık hizmetleri (`SaglikHizmeti`: süre, ücret), çalışanların şubesi ve sunduğu hizmetler | ✅ |
 | 5 | Doktor uygunluk zaman dilimleri (`UygunlukDilimi`) | ✅ |
 | 6 | Randevu modeli ve `RandevuDurumu`, randevu listesi ekranı | ✅ |
-| 7 | Veri katmanı: `IRepository<T>` ve JSON ile kalıcı kayıt | ⏳ |
+| 7 | Veri katmanı: `IVeriDeposu` arayüzü ve JSON ile kalıcı kayıt | ✅ |
 | 8 | Randevu servisi ve çakışma kontrolü | ⏳ |
 | 9 | Randevu onay mekanizması | ⏳ |
 | 10 | Giriş sistemi ve rol bazlı menüler | ⏳ |

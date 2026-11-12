@@ -9,20 +9,25 @@ namespace RandevuSistemi.Arayuz;
 /// Form sınıfı .NET'in hazır Form sınıfından TÜRER (kalıtım). Ekranlar ise
 /// UserControl'den türeyen ayrı sınıflardır; menüden seçilen ekran orta alana yerleştirilir.
 /// Bu form, tasarımcı (Designer) kullanılmadan tamamen kodla oluşturulmuştur.
+///
+/// Veriler otomatik kaydedilir: ekran değiştirilirken ve program kapatılırken.
+/// Form, kaydetme işini sadece IVeriDeposu arayüzü üzerinden yapar; JSON kullanıldığını bilmez.
 /// </summary>
 public class AnaForm : Form
 {
     private readonly UygulamaVerisi _veri;
+    private readonly IVeriDeposu _depo;
+    private readonly Label _kayitDurumu;
 
     private readonly Panel _icerik;
     private readonly Label _sayfaBasligi;
     private readonly FlowLayoutPanel _menu;
     private Button? _aktifButon;
 
-    public AnaForm()
+    public AnaForm(UygulamaVerisi veri, IVeriDeposu depo)
     {
-        // Şimdilik örnek veriler; ileride JSON dosyasından okunacak.
-        _veri = OrnekVeriler.Olustur();
+        _veri = veri;
+        _depo = depo;
 
         Text = "Hastane / Klinik Randevu Sistemi";
         Size = new Size(1200, 760);
@@ -63,10 +68,22 @@ public class AnaForm : Form
             WrapContents = false,
             Padding = new Padding(0, 12, 0, 0)
         };
+        _kayitDurumu = new Label
+        {
+            Dock = DockStyle.Bottom,
+            Height = 56,
+            ForeColor = Color.FromArgb(190, 205, 225),
+            Font = new Font("Segoe UI", 8.5f),
+            TextAlign = ContentAlignment.MiddleCenter,
+            Text = "Veriler otomatik kaydedilir"
+        };
+        new ToolTip().SetToolTip(_kayitDurumu, $"Veri dosyası:\n{_depo.Konum}");
+
         // Not: Dock sırasında son eklenen kontrol önce yerleşir.
-        // Önce "Fill" olan menüyü, sonra "Top" olan logoyu ekliyoruz.
+        // Önce "Fill" olan menüyü, sonra "Top" logoyu ve "Bottom" kayıt bilgisini ekliyoruz.
         yanPanel.Controls.Add(_menu);
         yanPanel.Controls.Add(logo);
+        yanPanel.Controls.Add(_kayitDurumu);
         yerlesim.Controls.Add(yanPanel, 0, 0);
         yerlesim.SetRowSpan(yanPanel, 2);
 
@@ -98,6 +115,23 @@ public class AnaForm : Form
 
         // Açılışta ilk ekranı göster
         EkranGoster(randevularButonu, "Randevular", new RandevularEkrani(_veri));
+
+        // Program kapanırken son değişiklikler kaydedilir.
+        FormClosing += (_, _) => VeriyiKaydet();
+    }
+
+    /// <summary>Tüm verileri depoya kaydeder; hata olursa kullanıcıya bildirir.</summary>
+    private void VeriyiKaydet()
+    {
+        try
+        {
+            _depo.Kaydet(_veri);
+            _kayitDurumu.Text = $"Veriler otomatik kaydedilir\nSon kayıt: {DateTime.Now:HH:mm:ss}";
+        }
+        catch (Exception hata) when (hata is IOException or UnauthorizedAccessException)
+        {
+            Tema.HataGoster($"Veriler kaydedilemedi:\n{hata.Message}");
+        }
     }
 
     /// <summary>
@@ -114,6 +148,9 @@ public class AnaForm : Form
 
     private void EkranGoster(Button buton, string baslik, Control ekran)
     {
+        // Önceki ekranda yapılan değişiklikleri kaydet.
+        VeriyiKaydet();
+
         if (_aktifButon is not null)
             _aktifButon.BackColor = Tema.Birincil;
         buton.BackColor = Tema.BirincilKoyu;

@@ -44,6 +44,44 @@ public class Randevu
         Durum = RandevuDurumu.Beklemede;
     }
 
+    /// <summary>
+    /// Sadece veri dosyasından yükleme için kullanılan boş constructor (private).
+    /// Dışarıdan çağrılamaz; KayittanYukle metodu kullanır.
+    /// </summary>
+    private Randevu()
+    {
+        HastaAdi = CalisanAdi = HizmetAdi = string.Empty;
+    }
+
+    /// <summary>
+    /// Kaydedilmiş bir randevuyu olduğu gibi geri oluşturur.
+    /// Normal constructor'daki kontroller (çalışan bu hizmeti sunuyor mu vb.) burada YAPILMAZ:
+    /// geçmişte alınmış bir randevu, çalışan o hizmeti artık sunmasa bile korunmalıdır.
+    /// </summary>
+    internal static Randevu KayittanYukle(
+        Guid id, Guid hastaId, Guid calisanId, Guid subeId, Guid hizmetId,
+        string hastaAdi, string calisanAdi, string hizmetAdi, int sureDakika, decimal ucret,
+        DateTime baslangic, DateTime olusturmaZamani, RandevuDurumu durum, string? not)
+    {
+        return new Randevu
+        {
+            Id = id,
+            HastaId = hastaId,
+            CalisanId = calisanId,
+            SubeId = subeId,
+            HizmetId = hizmetId,
+            HastaAdi = hastaAdi,
+            CalisanAdi = calisanAdi,
+            HizmetAdi = hizmetAdi,
+            SureDakika = sureDakika,
+            Ucret = ucret,
+            Baslangic = baslangic,
+            OlusturmaZamani = olusturmaZamani,
+            Durum = durum,
+            Not = not
+        };
+    }
+
     public Guid Id { get; private set; } = Guid.NewGuid();
 
     // ---- Kimlik bilgileri (ilişkili nesnelere ulaşmak için) ----
