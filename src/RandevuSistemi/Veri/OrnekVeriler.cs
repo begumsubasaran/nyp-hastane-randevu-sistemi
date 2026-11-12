@@ -1,3 +1,4 @@
+using RandevuSistemi.Models.Hizmetler;
 using RandevuSistemi.Models.Kullanicilar;
 using RandevuSistemi.Models.Kurumlar;
 
@@ -9,9 +10,11 @@ namespace RandevuSistemi.Veri;
 /// </summary>
 public static class OrnekVeriler
 {
-    public static List<Kurum> Kurumlar()
+    public static UygulamaVerisi Olustur()
     {
-        // Çok şubeli hastane
+        var veri = new UygulamaVerisi();
+
+        // ================= Çok şubeli hastane =================
         var hastane = new Kurum("Sakarya Sağlık Grubu", KurumTuru.Hastane);
 
         Sube merkez = hastane.SubeEkle("Merkez Şube", "Adapazarı / Sakarya");
@@ -27,17 +30,31 @@ public static class OrnekVeriler
         serdivan.BolumEkle("Dahiliye");
         serdivan.BolumEkle("Göz Hastalıkları");
 
-        // Tek şubeli klinik
+        // Her şubenin hizmetleri ve fiyatları ayrı tanımlanır.
+        merkez.HizmetEkle("Genel Muayene", HizmetKategorisi.Muayene, 15, 750m);
+        SaglikHizmeti kardiyolojiMuayene = merkez.HizmetEkle("Kardiyoloji Muayenesi", HizmetKategorisi.Muayene, 20, 1200m);
+        SaglikHizmeti ekg = merkez.HizmetEkle("EKG", HizmetKategorisi.Tetkik, 15, 400m, "Elektrokardiyografi");
+        SaglikHizmeti rontgen = merkez.HizmetEkle("Akciğer Röntgeni", HizmetKategorisi.Goruntuleme, 10, 600m);
+        SaglikHizmeti mr = merkez.HizmetEkle("MR", HizmetKategorisi.Goruntuleme, 30, 3500m, "Manyetik rezonans görüntüleme");
+        SaglikHizmeti kanTahlili = merkez.HizmetEkle("Kan Tahlili", HizmetKategorisi.Laboratuvar, 10, 350m);
+
+        SaglikHizmeti serdivanMuayene = serdivan.HizmetEkle("Genel Muayene", HizmetKategorisi.Muayene, 15, 700m);
+        serdivan.HizmetEkle("Göz Muayenesi", HizmetKategorisi.Muayene, 20, 900m);
+        serdivan.HizmetEkle("Kan Tahlili", HizmetKategorisi.Laboratuvar, 10, 350m);
+
+        // ================= Tek şubeli klinik =================
         var klinik = new Kurum("Erenler Aile Kliniği", KurumTuru.Klinik);
         Sube klinikSube = klinik.SubeEkle("Erenler", "Erenler / Sakarya");
         klinikSube.HaftaIciCalismaSaatiBelirle(new TimeOnly(9, 0), new TimeOnly(17, 30));
         klinikSube.BolumEkle("Genel Muayene");
 
-        return [hastane, klinik];
-    }
+        SaglikHizmeti klinikMuayene = klinikSube.HizmetEkle("Genel Muayene", HizmetKategorisi.Muayene, 20, 600m);
+        SaglikHizmeti asi = klinikSube.HizmetEkle("Aşı Uygulaması", HizmetKategorisi.Tedavi, 10, 200m);
 
-    public static List<Kullanici> Kullanicilar()
-    {
+        veri.Kurumlar.Add(hastane);
+        veri.Kurumlar.Add(klinik);
+
+        // ================= Kullanıcılar =================
         var ayse = new Hasta("Ayşe", "Yılmaz", "12345678901", "ayse", "sifre123", new DateOnly(1995, 4, 12))
         {
             Telefon = "0532 111 22 33",
@@ -45,15 +62,33 @@ public static class OrnekVeriler
         };
         var can = new Hasta("Can", "Öztürk", "56789012345", "can", "sifre123", new DateOnly(1988, 9, 3));
 
-        return
-        [
-            ayse,
-            can,
-            new Doktor("Mehmet", "Kaya", "23456789012", "drmehmet", "sifre123", "Kardiyoloji", DoktorUnvani.UzmDr),
-            new Doktor("Elif", "Arslan", "67890123456", "drelif", "sifre123", "Dahiliye", DoktorUnvani.DocDr),
-            new SaglikPersoneli("Zeynep", "Demir", "34567890123", "zeynep", "sifre123", PersonelGorevi.Hemsire),
-            new SaglikPersoneli("Burak", "Şahin", "78901234567", "burak", "sifre123", PersonelGorevi.RadyolojiTeknisyeni),
-            new Yonetici("Ali", "Çelik", "45678901234", "admin", "sifre123", YoneticiYetkisi.SistemYoneticisi)
-        ];
+        var mehmet = new Doktor("Mehmet", "Kaya", "23456789012", "drmehmet", "sifre123", "Kardiyoloji", DoktorUnvani.UzmDr);
+        mehmet.SubeyeAta(merkez);
+        mehmet.HizmetEkle(kardiyolojiMuayene);
+        mehmet.HizmetEkle(ekg);
+
+        var elif = new Doktor("Elif", "Arslan", "67890123456", "drelif", "sifre123", "Dahiliye", DoktorUnvani.DocDr);
+        elif.SubeyeAta(serdivan);
+        elif.HizmetEkle(serdivanMuayene);
+
+        var hakan = new Doktor("Hakan", "Aydın", "89012345678", "drhakan", "sifre123", "Aile Hekimliği", DoktorUnvani.Dr);
+        hakan.SubeyeAta(klinikSube);
+        hakan.HizmetEkle(klinikMuayene);
+        hakan.HizmetEkle(asi);
+
+        var zeynep = new SaglikPersoneli("Zeynep", "Demir", "34567890123", "zeynep", "sifre123", PersonelGorevi.Hemsire);
+        zeynep.SubeyeAta(merkez);
+        zeynep.HizmetEkle(kanTahlili);
+
+        var burak = new SaglikPersoneli("Burak", "Şahin", "78901234567", "burak", "sifre123", PersonelGorevi.RadyolojiTeknisyeni);
+        burak.SubeyeAta(merkez);
+        burak.HizmetEkle(rontgen);
+        burak.HizmetEkle(mr);
+
+        var admin = new Yonetici("Ali", "Çelik", "45678901234", "admin", "sifre123", YoneticiYetkisi.SistemYoneticisi);
+
+        veri.Kullanicilar.AddRange(new Kullanici[] { ayse, can, mehmet, elif, hakan, zeynep, burak, admin });
+
+        return veri;
     }
 }

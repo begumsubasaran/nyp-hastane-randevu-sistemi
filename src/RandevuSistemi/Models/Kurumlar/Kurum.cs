@@ -1,3 +1,5 @@
+using RandevuSistemi.Models.Hizmetler;
+
 namespace RandevuSistemi.Models.Kurumlar;
 
 /// <summary>Sağlık kuruluşunun türü.</summary>
@@ -66,6 +68,13 @@ public class Kurum
     public bool SubeKaldir(Guid subeId) => _subeler.RemoveAll(s => s.Id == subeId) > 0;
 
     public Sube? SubeBul(Guid subeId) => _subeler.FirstOrDefault(s => s.Id == subeId);
+
+    /// <summary>
+    /// Kurumun tüm şubelerindeki hizmetler. Hizmetler şube düzeyinde tanımlanır,
+    /// çünkü her şube farklı hizmet sunabilir ve fiyatları farklı olabilir.
+    /// SelectMany: her şubenin hizmet listesini tek bir listede birleştirir.
+    /// </summary>
+    public IEnumerable<SaglikHizmeti> TumHizmetler => _subeler.SelectMany(s => s.Hizmetler);
 
     public override string ToString() => $"{Ad} [{TurAdi}] - {_subeler.Count} şube";
 }

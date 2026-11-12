@@ -46,13 +46,16 @@ nesne_programlama/
         ├── Arayuz/              # Windows Forms arayüzü
         │   ├── AnaForm.cs       # Ana pencere: yan menü + içerik alanı
         │   ├── Tema.cs          # Renkler, yazı tipleri, ortak görünüm ayarları
-        │   └── Ekranlar/        # Menüden açılan ekranlar (UserControl)
+        │   ├── Ekranlar/        # Menüden açılan ekranlar (UserControl)
+        │   └── Formlar/         # Ekleme/düzenleme pencereleri (dialog)
         ├── Veri/
-        │   └── OrnekVeriler.cs  # Başlangıç için örnek kurum ve kullanıcılar
+        │   ├── UygulamaVerisi.cs # Tüm verileri (kurumlar, kullanıcılar) bir arada tutar
+        │   └── OrnekVeriler.cs  # Başlangıç için örnek veriler
         └── Models/              # İş mantığı sınıfları (arayüzden bağımsız)
             ├── Dogrulama.cs
             ├── Kullanicilar/    # Kullanıcı sınıf hiyerarşisi
-            └── Kurumlar/        # Kurum, şube, bölüm, çalışma saatleri
+            ├── Kurumlar/        # Kurum, şube, bölüm, çalışma saatleri
+            └── Hizmetler/       # Sağlık hizmetleri (süre, ücret)
 ```
 
 Model sınıfları arayüzden tamamen bağımsızdır: aynı sınıflar konsol, masaüstü
@@ -75,7 +78,12 @@ Kullanici (abstract)
 Kurum (Hastane / Klinik / Tıp Merkezi)
 └── Sube (1 veya daha fazla)
     ├── CalismaSaati (gün bazında açılış-kapanış)
-    └── Bolum (Kardiyoloji, Radyoloji, Laboratuvar...)
+    ├── Bolum (Kardiyoloji, Radyoloji, Laboratuvar...)
+    └── SaglikHizmeti (ad, kategori, süre, ücret) — her şubenin kendi hizmetleri ve fiyatları
+
+Calisan (Doktor / SaglikPersoneli)
+├── SubeId      → çalıştığı şube
+└── HizmetIdleri → sunduğu hizmetler
 ```
 
 Tek şubeli bir klinik, 1 şubesi olan kurum olarak; çok şubeli bir hastane grubu ise
@@ -91,7 +99,7 @@ Her adım ayrı bir commit olarak gönderilir.
 | 2 | Kullanıcı sınıf hiyerarşisi (`Kullanici`, `Hasta`, `Doktor`, `SaglikPersoneli`, `Yonetici`) | ✅ |
 | 3 | Kurum yapısı (`Kurum`, `Sube`, `Bolum`, `CalismaSaati`) | ✅ |
 | 3b | Windows Forms arayüzü: ana pencere, kurumlar ve kullanıcılar ekranları | ✅ |
-| 4 | Sağlık hizmetleri (`SaglikHizmeti`: süre, ücret) ve doktor uzmanlıkları | ⏳ |
+| 4 | Sağlık hizmetleri (`SaglikHizmeti`: süre, ücret), çalışanların şubesi ve sunduğu hizmetler | ✅ |
 | 5 | Doktor uygunluk zaman dilimleri (`UygunlukDilimi`) | ⏳ |
 | 6 | Randevu modeli ve `RandevuDurumu` | ⏳ |
 | 7 | Veri katmanı: `IRepository<T>` ve JSON ile kalıcı kayıt | ⏳ |

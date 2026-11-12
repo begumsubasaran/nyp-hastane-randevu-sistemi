@@ -1,8 +1,10 @@
+using RandevuSistemi.Models.Hizmetler;
+
 namespace RandevuSistemi.Models.Kurumlar;
 
 /// <summary>
-/// Bir kurumun şubesi. Çalışma saatleri ve bölümler şube bazında tanımlanır,
-/// çünkü aynı kurumun farklı şubeleri farklı saatlerde çalışıp farklı bölümlere sahip olabilir.
+/// Bir kurumun şubesi. Çalışma saatleri, bölümler ve sağlık hizmetleri şube bazında tanımlanır,
+/// çünkü aynı kurumun farklı şubeleri farklı saatlerde çalışıp farklı hizmetler sunabilir.
 ///
 /// KAPSÜLLEME: Listeler private tutulur. Dışarıya sadece okunabilir (IReadOnlyList)
 /// halleri verilir; ekleme/çıkarma yalnızca kuralları kontrol eden metotlarla yapılabilir.
@@ -12,6 +14,7 @@ public class Sube
 {
     private readonly List<CalismaSaati> _calismaSaatleri = new();
     private readonly List<Bolum> _bolumler = new();
+    private readonly List<SaglikHizmeti> _hizmetler = new();
     private string _ad = string.Empty;
     private string _adres = string.Empty;
 
@@ -42,6 +45,7 @@ public class Sube
 
     public IReadOnlyList<CalismaSaati> CalismaSaatleri => _calismaSaatleri.AsReadOnly();
     public IReadOnlyList<Bolum> Bolumler => _bolumler.AsReadOnly();
+    public IReadOnlyList<SaglikHizmeti> Hizmetler => _hizmetler.AsReadOnly();
 
     // ---------------- Çalışma saatleri ----------------
 
@@ -117,6 +121,26 @@ public class Sube
     /// <summary>İsme göre bölüm arar (büyük/küçük harf duyarsız).</summary>
     public Bolum? BolumBul(string ad) =>
         _bolumler.FirstOrDefault(b => string.Equals(b.Ad, ad.Trim(), StringComparison.CurrentCultureIgnoreCase));
+
+    // ---------------- Sağlık hizmetleri ----------------
+
+    /// <summary>Şubeye yeni hizmet ekler. Bu şubede aynı isimde hizmet varsa hata verir.</summary>
+    public SaglikHizmeti HizmetEkle(string ad, HizmetKategorisi kategori, int sureDakika, decimal ucret,
+                                    string? aciklama = null)
+    {
+        var hizmet = new SaglikHizmeti(ad, kategori, sureDakika, ucret, aciklama); // geçersizse hata fırlar
+        bool ayniIsimVar = _hizmetler.Any(h =>
+            string.Equals(h.Ad, hizmet.Ad, StringComparison.CurrentCultureIgnoreCase));
+        if (ayniIsimVar)
+            throw new InvalidOperationException($"'{hizmet.Ad}' hizmeti bu şubede zaten var.");
+
+        _hizmetler.Add(hizmet);
+        return hizmet;
+    }
+
+    public bool HizmetKaldir(Guid hizmetId) => _hizmetler.RemoveAll(h => h.Id == hizmetId) > 0;
+
+    public SaglikHizmeti? HizmetBul(Guid hizmetId) => _hizmetler.FirstOrDefault(h => h.Id == hizmetId);
 
     public override string ToString() => $"{Ad} ({Adres})";
 }

@@ -1,6 +1,4 @@
 using RandevuSistemi.Arayuz.Ekranlar;
-using RandevuSistemi.Models.Kullanicilar;
-using RandevuSistemi.Models.Kurumlar;
 using RandevuSistemi.Veri;
 
 namespace RandevuSistemi.Arayuz;
@@ -14,8 +12,7 @@ namespace RandevuSistemi.Arayuz;
 /// </summary>
 public class AnaForm : Form
 {
-    private readonly List<Kurum> _kurumlar;
-    private readonly List<Kullanici> _kullanicilar;
+    private readonly UygulamaVerisi _veri;
 
     private readonly Panel _icerik;
     private readonly Label _sayfaBasligi;
@@ -25,8 +22,7 @@ public class AnaForm : Form
     public AnaForm()
     {
         // Şimdilik örnek veriler; ileride JSON dosyasından okunacak.
-        _kurumlar = OrnekVeriler.Kurumlar();
-        _kullanicilar = OrnekVeriler.Kullanicilar();
+        _veri = OrnekVeriler.Olustur();
 
         Text = "Hastane / Klinik Randevu Sistemi";
         Size = new Size(1100, 700);
@@ -94,11 +90,13 @@ public class AnaForm : Form
         Controls.Add(yerlesim);
 
         // ---- Menü öğeleri ----
-        Button kurumlarButonu = MenuEkle("Kurumlar", () => new KurumlarEkrani(_kurumlar));
-        MenuEkle("Kullanıcılar", () => new KullanicilarEkrani(_kullanicilar));
+        Button kurumlarButonu = MenuEkle("Kurumlar", () => new KurumlarEkrani(_veri.Kurumlar));
+        MenuEkle("Hizmetler", () => new HizmetlerEkrani(_veri));
+        MenuEkle("Çalışanlar", () => new CalisanlarEkrani(_veri));
+        MenuEkle("Kullanıcılar", () => new KullanicilarEkrani(_veri.Kullanicilar));
 
         // Açılışta ilk ekranı göster
-        EkranGoster(kurumlarButonu, "Kurumlar", new KurumlarEkrani(_kurumlar));
+        EkranGoster(kurumlarButonu, "Kurumlar", new KurumlarEkrani(_veri.Kurumlar));
     }
 
     /// <summary>

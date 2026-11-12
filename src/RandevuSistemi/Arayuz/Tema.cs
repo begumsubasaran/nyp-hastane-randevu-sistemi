@@ -43,6 +43,34 @@ public static class Tema
         return buton;
     }
 
+    /// <summary>
+    /// Ekranlardaki işlem butonu. birincil = true ise renkli (Kaydet, Yeni gibi),
+    /// false ise beyaz zeminli (İptal, Sil gibi) olur.
+    /// </summary>
+    public static Button Buton(string metin, bool birincil = true)
+    {
+        var buton = new Button
+        {
+            Text = metin,
+            AutoSize = true,
+            MinimumSize = new Size(110, 34),
+            Padding = new Padding(10, 0, 10, 0),
+            Margin = new Padding(0, 0, 8, 0),
+            FlatStyle = FlatStyle.Flat,
+            BackColor = birincil ? Vurgu : Kart,
+            ForeColor = birincil ? Color.White : Yazi,
+            Font = Kalin,
+            Cursor = Cursors.Hand
+        };
+        buton.FlatAppearance.BorderSize = birincil ? 0 : 1;
+        buton.FlatAppearance.BorderColor = Cizgi;
+        return buton;
+    }
+
+    /// <summary>Hata mesajını standart bir uyarı kutusunda gösterir.</summary>
+    public static void HataGoster(string mesaj) =>
+        MessageBox.Show(mesaj, "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
     /// <summary>Ekranlardaki küçük bölüm başlıkları ("Çalışma Saatleri" gibi).</summary>
     public static Label BolumBasligi(string metin) => new()
     {
