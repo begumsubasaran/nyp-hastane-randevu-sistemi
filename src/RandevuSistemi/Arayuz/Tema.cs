@@ -1,3 +1,5 @@
+using RandevuSistemi.Models.Randevular;
+
 namespace RandevuSistemi.Arayuz;
 
 /// <summary>
@@ -70,6 +72,17 @@ public static class Tema
     /// <summary>Hata mesajını standart bir uyarı kutusunda gösterir.</summary>
     public static void HataGoster(string mesaj) =>
         MessageBox.Show(mesaj, "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+    /// <summary>Randevu durumlarını tablolarda renkle ayırt etmek için.</summary>
+    public static Color DurumRengi(RandevuDurumu durum) => durum switch
+    {
+        RandevuDurumu.Beklemede => Color.FromArgb(214, 137, 16),   // turuncu
+        RandevuDurumu.Onaylandi => Color.FromArgb(25, 135, 84),    // yeşil
+        RandevuDurumu.Reddedildi => Color.FromArgb(200, 35, 51),   // kırmızı
+        RandevuDurumu.IptalEdildi => Color.FromArgb(108, 117, 125), // gri
+        RandevuDurumu.Tamamlandi => Color.FromArgb(13, 110, 253),  // mavi
+        _ => Yazi
+    };
 
     /// <summary>İşlemin başarıyla tamamlandığını bilgi kutusunda gösterir.</summary>
     public static void BilgiGoster(string mesaj) =>

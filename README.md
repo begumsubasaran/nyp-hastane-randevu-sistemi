@@ -56,7 +56,7 @@ nesne_programlama/
             ├── Kullanicilar/    # Kullanıcı sınıf hiyerarşisi
             ├── Kurumlar/        # Kurum, şube, bölüm, çalışma saatleri
             ├── Hizmetler/       # Sağlık hizmetleri (süre, ücret)
-            └── Randevular/      # Uygunluk dilimleri (ve randevular)
+            └── Randevular/      # Uygunluk dilimleri, randevu ve randevu durumları
 ```
 
 Model sınıfları arayüzden tamamen bağımsızdır: aynı sınıflar konsol, masaüstü
@@ -91,6 +91,17 @@ Calisan (Doktor / SaglikPersoneli)
 Tek şubeli bir klinik, 1 şubesi olan kurum olarak; çok şubeli bir hastane grubu ise
 birden fazla şubesi olan kurum olarak tanımlanır.
 
+## Randevu
+
+```
+Randevu
+├── HastaId, CalisanId, SubeId, HizmetId   → ilişkili kayıtlar
+├── HizmetAdi, SureDakika, Ucret           → randevu anında kopyalanır (fiyat sonradan değişse de korunur)
+├── Baslangic, Bitis (= Baslangic + süre)
+└── Durum: Beklemede → Onaylandi → Tamamlandi
+                    ↘ Reddedildi / IptalEdildi
+```
+
 ## Geliştirme yol haritası
 
 Her adım ayrı bir commit olarak gönderilir.
@@ -103,7 +114,7 @@ Her adım ayrı bir commit olarak gönderilir.
 | 3b | Windows Forms arayüzü: ana pencere, kurumlar ve kullanıcılar ekranları | ✅ |
 | 4 | Sağlık hizmetleri (`SaglikHizmeti`: süre, ücret), çalışanların şubesi ve sunduğu hizmetler | ✅ |
 | 5 | Doktor uygunluk zaman dilimleri (`UygunlukDilimi`) | ✅ |
-| 6 | Randevu modeli ve `RandevuDurumu` | ⏳ |
+| 6 | Randevu modeli ve `RandevuDurumu`, randevu listesi ekranı | ✅ |
 | 7 | Veri katmanı: `IRepository<T>` ve JSON ile kalıcı kayıt | ⏳ |
 | 8 | Randevu servisi ve çakışma kontrolü | ⏳ |
 | 9 | Randevu onay mekanizması | ⏳ |

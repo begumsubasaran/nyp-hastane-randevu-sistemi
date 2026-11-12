@@ -1,6 +1,7 @@
 using RandevuSistemi.Models.Hizmetler;
 using RandevuSistemi.Models.Kullanicilar;
 using RandevuSistemi.Models.Kurumlar;
+using RandevuSistemi.Models.Randevular;
 
 namespace RandevuSistemi.Veri;
 
@@ -105,7 +106,29 @@ public static class OrnekVeriler
 
         veri.Kullanicilar.AddRange(new Kullanici[] { ayse, can, mehmet, elif, hakan, zeynep, burak, admin });
 
+        // ================= Örnek randevular =================
+        // Tarihler bugüne göre hesaplanır: "bir sonraki Pazartesi" gibi.
+        // Böylece program hangi gün açılırsa açılsın randevular ileri tarihli ve uygunluk saatleri içinde olur.
+        veri.Randevular.Add(new Randevu(ayse, mehmet, kardiyolojiMuayene, SonrakiGun(DayOfWeek.Monday, 9, 0)));
+        veri.Randevular.Add(new Randevu(can, mehmet, ekg, SonrakiGun(DayOfWeek.Monday, 9, 20)));
+        veri.Randevular.Add(new Randevu(ayse, elif, serdivanMuayene, SonrakiGun(DayOfWeek.Tuesday, 10, 0)));
+        veri.Randevular.Add(new Randevu(can, burak, mr, SonrakiGun(DayOfWeek.Tuesday, 11, 0)));
+        veri.Randevular.Add(new Randevu(ayse, zeynep, kanTahlili, SonrakiGun(DayOfWeek.Wednesday, 8, 30)));
+        veri.Randevular.Add(new Randevu(can, hakan, asi, SonrakiGun(DayOfWeek.Thursday, 14, 0)));
+
         return veri;
+    }
+
+    /// <summary>
+    /// Yarından itibaren verilen günün ilk tarihini, belirtilen saatle döndürür.
+    /// Örnek: bugün Perşembe ise SonrakiGun(Monday, 9, 0) → gelecek Pazartesi 09:00
+    /// </summary>
+    private static DateTime SonrakiGun(DayOfWeek gun, int saat, int dakika)
+    {
+        DateTime tarih = DateTime.Today.AddDays(1);
+        while (tarih.DayOfWeek != gun)
+            tarih = tarih.AddDays(1);
+        return tarih.AddHours(saat).AddMinutes(dakika);
     }
 
     /// <summary>Kısaltma: Saat(9) → 09:00, Saat(17, 30) → 17:30</summary>

@@ -90,13 +90,14 @@ public class AnaForm : Form
         Controls.Add(yerlesim);
 
         // ---- Menü öğeleri ----
-        Button kurumlarButonu = MenuEkle("Kurumlar", () => new KurumlarEkrani(_veri.Kurumlar));
+        Button randevularButonu = MenuEkle("Randevular", () => new RandevularEkrani(_veri));
+        MenuEkle("Kurumlar", () => new KurumlarEkrani(_veri.Kurumlar));
         MenuEkle("Hizmetler", () => new HizmetlerEkrani(_veri));
         MenuEkle("Çalışanlar", () => new CalisanlarEkrani(_veri));
         MenuEkle("Kullanıcılar", () => new KullanicilarEkrani(_veri.Kullanicilar));
 
         // Açılışta ilk ekranı göster
-        EkranGoster(kurumlarButonu, "Kurumlar", new KurumlarEkrani(_veri.Kurumlar));
+        EkranGoster(randevularButonu, "Randevular", new RandevularEkrani(_veri));
     }
 
     /// <summary>
