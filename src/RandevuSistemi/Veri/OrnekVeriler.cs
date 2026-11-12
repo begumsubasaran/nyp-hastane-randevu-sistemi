@@ -66,24 +66,40 @@ public static class OrnekVeriler
         mehmet.SubeyeAta(merkez);
         mehmet.HizmetEkle(kardiyolojiMuayene);
         mehmet.HizmetEkle(ekg);
+        mehmet.UygunlukEkle(merkez, DayOfWeek.Monday, Saat(9), Saat(12));
+        mehmet.UygunlukEkle(merkez, DayOfWeek.Monday, Saat(13), Saat(16));
+        mehmet.UygunlukEkle(merkez, DayOfWeek.Wednesday, Saat(9), Saat(12));
+        mehmet.UygunlukEkle(merkez, DayOfWeek.Friday, Saat(13), Saat(17));
 
         var elif = new Doktor("Elif", "Arslan", "67890123456", "drelif", "sifre123", "Dahiliye", DoktorUnvani.DocDr);
         elif.SubeyeAta(serdivan);
         elif.HizmetEkle(serdivanMuayene);
+        elif.UygunlukEkle(serdivan, DayOfWeek.Tuesday, Saat(9), Saat(12));
+        elif.UygunlukEkle(serdivan, DayOfWeek.Thursday, Saat(13), Saat(17, 30));
 
         var hakan = new Doktor("Hakan", "Aydın", "89012345678", "drhakan", "sifre123", "Aile Hekimliği", DoktorUnvani.Dr);
         hakan.SubeyeAta(klinikSube);
         hakan.HizmetEkle(klinikMuayene);
         hakan.HizmetEkle(asi);
+        foreach (DayOfWeek gun in new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday })
+        {
+            hakan.UygunlukEkle(klinikSube, gun, Saat(9), Saat(12));
+            hakan.UygunlukEkle(klinikSube, gun, Saat(13), Saat(17));
+        }
 
         var zeynep = new SaglikPersoneli("Zeynep", "Demir", "34567890123", "zeynep", "sifre123", PersonelGorevi.Hemsire);
         zeynep.SubeyeAta(merkez);
         zeynep.HizmetEkle(kanTahlili);
+        foreach (DayOfWeek gun in new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday })
+            zeynep.UygunlukEkle(merkez, gun, Saat(8), Saat(12));
 
         var burak = new SaglikPersoneli("Burak", "Şahin", "78901234567", "burak", "sifre123", PersonelGorevi.RadyolojiTeknisyeni);
         burak.SubeyeAta(merkez);
         burak.HizmetEkle(rontgen);
         burak.HizmetEkle(mr);
+        burak.UygunlukEkle(merkez, DayOfWeek.Tuesday, Saat(9), Saat(16));
+        burak.UygunlukEkle(merkez, DayOfWeek.Thursday, Saat(9), Saat(16));
+        burak.UygunlukEkle(merkez, DayOfWeek.Saturday, Saat(9), Saat(13));
 
         var admin = new Yonetici("Ali", "Çelik", "45678901234", "admin", "sifre123", YoneticiYetkisi.SistemYoneticisi);
 
@@ -91,4 +107,7 @@ public static class OrnekVeriler
 
         return veri;
     }
+
+    /// <summary>Kısaltma: Saat(9) → 09:00, Saat(17, 30) → 17:30</summary>
+    private static TimeOnly Saat(int saat, int dakika = 0) => new(saat, dakika);
 }

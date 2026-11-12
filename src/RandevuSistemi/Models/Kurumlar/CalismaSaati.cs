@@ -31,6 +31,16 @@ public class CalismaSaati
 
     public override string ToString() => $"{GunAdi(Gun)}: {Acilis:HH:mm} - {Kapanis:HH:mm}";
 
+    /// <summary>Sıralama için: Pazartesi = 0 ... Pazar = 6 (C#'ta varsayılan olarak Pazar = 0'dır).</summary>
+    public static int GunSirasi(DayOfWeek gun) => ((int)gun + 6) % 7;
+
+    /// <summary>Pazartesiden başlayarak haftanın günleri.</summary>
+    public static readonly DayOfWeek[] HaftaninGunleri =
+    [
+        DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday,
+        DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday
+    ];
+
     /// <summary>DayOfWeek değerini Türkçe gün adına çevirir.</summary>
     public static string GunAdi(DayOfWeek gun) => gun switch
     {

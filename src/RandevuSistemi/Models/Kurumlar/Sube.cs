@@ -100,8 +100,14 @@ public class Sube
                && saat.KapsarMi(TimeOnly.FromDateTime(baslangic), TimeOnly.FromDateTime(bitis));
     }
 
-    /// <summary>Pazartesi = 0 ... Pazar = 6 (C#'ta varsayılan olarak Pazar = 0'dır).</summary>
-    private static int GunSirasi(DayOfWeek gun) => ((int)gun + 6) % 7;
+    /// <summary>Haftanın bir gününde, verilen saat aralığı şubenin çalışma saatleri içinde mi?</summary>
+    public bool CalismaSaatleriIcindeMi(DayOfWeek gun, TimeOnly baslangic, TimeOnly bitis)
+    {
+        CalismaSaati? saat = CalismaSaatiGetir(gun);
+        return saat is not null && saat.KapsarMi(baslangic, bitis);
+    }
+
+    private static int GunSirasi(DayOfWeek gun) => CalismaSaati.GunSirasi(gun);
 
     // ---------------- Bölümler ----------------
 

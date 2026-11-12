@@ -25,8 +25,8 @@ public class AnaForm : Form
         _veri = OrnekVeriler.Olustur();
 
         Text = "Hastane / Klinik Randevu Sistemi";
-        Size = new Size(1100, 700);
-        MinimumSize = new Size(900, 560);
+        Size = new Size(1200, 760);
+        MinimumSize = new Size(1000, 620);
         StartPosition = FormStartPosition.CenterScreen;
         Font = Tema.Normal;
         BackColor = Tema.Arkaplan;

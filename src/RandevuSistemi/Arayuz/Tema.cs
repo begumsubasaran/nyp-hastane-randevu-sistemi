@@ -71,6 +71,10 @@ public static class Tema
     public static void HataGoster(string mesaj) =>
         MessageBox.Show(mesaj, "Uyarı", MessageBoxButtons.OK, MessageBoxIcon.Warning);
 
+    /// <summary>İşlemin başarıyla tamamlandığını bilgi kutusunda gösterir.</summary>
+    public static void BilgiGoster(string mesaj) =>
+        MessageBox.Show(mesaj, "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
     /// <summary>Ekranlardaki küçük bölüm başlıkları ("Çalışma Saatleri" gibi).</summary>
     public static Label BolumBasligi(string metin) => new()
     {

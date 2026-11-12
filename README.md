@@ -55,7 +55,8 @@ nesne_programlama/
             ├── Dogrulama.cs
             ├── Kullanicilar/    # Kullanıcı sınıf hiyerarşisi
             ├── Kurumlar/        # Kurum, şube, bölüm, çalışma saatleri
-            └── Hizmetler/       # Sağlık hizmetleri (süre, ücret)
+            ├── Hizmetler/       # Sağlık hizmetleri (süre, ücret)
+            └── Randevular/      # Uygunluk dilimleri (ve randevular)
 ```
 
 Model sınıfları arayüzden tamamen bağımsızdır: aynı sınıflar konsol, masaüstü
@@ -82,8 +83,9 @@ Kurum (Hastane / Klinik / Tıp Merkezi)
     └── SaglikHizmeti (ad, kategori, süre, ücret) — her şubenin kendi hizmetleri ve fiyatları
 
 Calisan (Doktor / SaglikPersoneli)
-├── SubeId      → çalıştığı şube
-└── HizmetIdleri → sunduğu hizmetler
+├── SubeId            → çalıştığı şube
+├── HizmetIdleri      → sunduğu hizmetler
+└── UygunlukDilimleri → haftalık randevu verebildiği saatler (ör. Pazartesi 09:00-12:00)
 ```
 
 Tek şubeli bir klinik, 1 şubesi olan kurum olarak; çok şubeli bir hastane grubu ise
@@ -100,7 +102,7 @@ Her adım ayrı bir commit olarak gönderilir.
 | 3 | Kurum yapısı (`Kurum`, `Sube`, `Bolum`, `CalismaSaati`) | ✅ |
 | 3b | Windows Forms arayüzü: ana pencere, kurumlar ve kullanıcılar ekranları | ✅ |
 | 4 | Sağlık hizmetleri (`SaglikHizmeti`: süre, ücret), çalışanların şubesi ve sunduğu hizmetler | ✅ |
-| 5 | Doktor uygunluk zaman dilimleri (`UygunlukDilimi`) | ⏳ |
+| 5 | Doktor uygunluk zaman dilimleri (`UygunlukDilimi`) | ✅ |
 | 6 | Randevu modeli ve `RandevuDurumu` | ⏳ |
 | 7 | Veri katmanı: `IRepository<T>` ve JSON ile kalıcı kayıt | ⏳ |
 | 8 | Randevu servisi ve çakışma kontrolü | ⏳ |
