@@ -3,6 +3,7 @@ using RandevuSistemi.Models.Hizmetler;
 using RandevuSistemi.Models.Kullanicilar;
 using RandevuSistemi.Models.Kurumlar;
 using RandevuSistemi.Models.Randevular;
+using RandevuSistemi.Servisler;
 using RandevuSistemi.Veri;
 
 namespace RandevuSistemi.Arayuz.Ekranlar;
@@ -36,13 +37,15 @@ public class CalisanlarEkrani : UserControl
     private readonly Label _uygunlukNotu;
 
     private readonly Calisan? _sadeceBuCalisan;
+    private readonly Kullanici _aktifKullanici;
     private readonly Button _aktiflikButonu;
     private Calisan? _seciliCalisan;
     private bool _yukleniyor; // ekran doldurulurken olayların (event) tetiklenmesini engellemek için
 
-    public CalisanlarEkrani(UygulamaVerisi veri, Calisan? sadeceBuCalisan = null)
+    public CalisanlarEkrani(UygulamaVerisi veri, Kullanici aktifKullanici, Calisan? sadeceBuCalisan = null)
     {
         _veri = veri;
+        _aktifKullanici = aktifKullanici;
         _sadeceBuCalisan = sadeceBuCalisan;
         BackColor = Tema.Arkaplan;
 
@@ -315,25 +318,48 @@ public class CalisanlarEkrani : UserControl
         if (_seciliCalisan is not { } calisan)
             return;
 
-        if (calisan.AktifMi)
-        {
-            DialogResult cevap = MessageBox.Show(
-                $"{calisan.TamAd} pasife alınsın mı?\n\nPasif çalışana yeni randevu alınamaz ve sisteme giriş yapamaz. " +
-                "Geçmiş randevuları korunur.",
-                "Pasife Al", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-            if (cevap != DialogResult.Yes)
-                return;
-
-            calisan.PasifeAl();
-        }
-        else
+        if (!calisan.AktifMi)
         {
             calisan.AktifEt();
+            SeciliSatiriGuncelle();
+            DetayGoster(calisan);
+            Tema.BilgiGoster($"{calisan.TamAd} tekrar aktif edildi.\n\n" +
+                             "Not: Pasife alınırken iptal edilen randevular geri gelmez.");
+            return;
         }
 
-        SeciliSatiriGuncelle();
-        DetayGoster(calisan);
-        Tema.BilgiGoster($"{calisan.TamAd} {(calisan.AktifMi ? "tekrar aktif edildi" : "pasife alındı")}.");
+        var servis = new RandevuServisi(_veri);
+        int iptalSayisi = servis.GelecekRandevulari(calisan).Count;
+
+        DialogResult cevap = MessageBox.Show(
+            $"{calisan.TamAd} pasife alınsın mı?\n\n" +
+            "• Pasif çalışana yeni randevu alınamaz ve sisteme giriş yapamaz.\n" +
+            $"• İleri tarihli {iptalSayisi} randevusu İPTAL EDİLECEK.\n" +
+            "• Geçmiş ve tamamlanmış randevuları korunur.",
+            "Pasife Al", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+        if (cevap != DialogResult.Yes)
+            return;
+
+        try
+        {
+            List<Randevu> iptalEdilenler = servis.CalisaniPasifeAl(calisan, _aktifKullanici);
+
+            SeciliSatiriGuncelle();
+            DetayGoster(calisan);
+
+            string ozet = iptalEdilenler.Count == 0
+                ? "İptal edilecek ileri tarihli randevusu yoktu."
+                : $"{iptalEdilenler.Count} randevu iptal edildi:\n" + string.Join("\n", iptalEdilenler
+                      .Take(10)
+                      .Select(r => $"• {r.Baslangic:dd.MM.yyyy HH:mm}  {r.HizmetAdi}  ({r.HastaAdi})"))
+                  + (iptalEdilenler.Count > 10 ? $"\n... ve {iptalEdilenler.Count - 10} randevu daha" : "");
+
+            Tema.BilgiGoster($"{calisan.TamAd} pasife alındı.\n\n{ozet}");
+        }
+        catch (Exception hata) when (hata is UnauthorizedAccessException or InvalidOperationException)
+        {
+            Tema.HataGoster(hata.Message);
+        }
     }
 
     private void SatiriSec(Calisan calisan)

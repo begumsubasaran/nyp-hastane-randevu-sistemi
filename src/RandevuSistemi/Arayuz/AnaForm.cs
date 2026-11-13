@@ -145,13 +145,13 @@ public class AnaForm : Form
             case Yonetici:
                 MenuEkle("Kurumlar", () => new KurumlarEkrani(_veri, _aktifKullanici));
                 MenuEkle("Hizmetler", () => new HizmetlerEkrani(_veri));
-                MenuEkle("Çalışanlar", () => new CalisanlarEkrani(_veri));
+                MenuEkle("Çalışanlar", () => new CalisanlarEkrani(_veri, _aktifKullanici));
                 MenuEkle("Kullanıcılar", () => new KullanicilarEkrani(_veri.Kullanicilar));
                 break;
 
             case Calisan calisan:
                 // Doktor/personel sadece kendi bilgilerini (uygunluk saatleri vb.) görür.
-                MenuEkle("Çalışma Bilgilerim", () => new CalisanlarEkrani(_veri, calisan));
+                MenuEkle("Çalışma Bilgilerim", () => new CalisanlarEkrani(_veri, _aktifKullanici, calisan));
                 break;
 
             case Hasta:

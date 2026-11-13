@@ -159,6 +159,9 @@ Randevu oluşturulurken sırasıyla kontrol edilir; biri sağlanmazsa `RandevuKu
 
 Reddedilen ve iptal edilen randevular saati boşaltır, çakışma kontrolünde sayılmaz.
 
+Bir çalışan **pasife alındığında** (`RandevuServisi.CalisaniPasifeAl`), o andan sonraki onay bekleyen ve
+onaylanmış randevuları sebebi yazılarak otomatik **iptal edilir**; geçmiş ve tamamlanmış randevulara dokunulmaz.
+
 ## Onay mekanizması
 
 ```

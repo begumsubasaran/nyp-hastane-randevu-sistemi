@@ -105,6 +105,39 @@ public class RandevuServisi
             kosul(r) && r.Durum.SaatiDoldururMu() && r.CakisiyorMu(baslangic, bitis));
 
     /// <summary>
+    /// Çalışanın ileri tarihli, hâlâ geçerli (onay bekleyen veya onaylanmış) randevuları.
+    /// Pasife alma onayında kaç randevunun iptal edileceğini göstermek için de kullanılır.
+    /// </summary>
+    public List<Randevu> GelecekRandevulari(Calisan calisan) =>
+        _veri.Randevular
+            .Where(r => r.CalisanId == calisan.Id
+                        && r.Baslangic > DateTime.Now
+                        && r.GecisMumkunMu(RandevuDurumu.IptalEdildi))
+            .OrderBy(r => r.Baslangic)
+            .ToList();
+
+    /// <summary>
+    /// Çalışanı pasife alır ve pasife alındığı andan SONRAKİ (ileri tarihli) randevularını iptal eder.
+    /// Geçmiş ve tamamlanmış randevulara dokunulmaz. İptal edilen randevuların listesini döndürür.
+    /// İptal işlemi Randevu.IptalEt ile yapıldığı için yetki ve durum kuralları burada da geçerlidir.
+    /// </summary>
+    public List<Randevu> CalisaniPasifeAl(Calisan calisan, Kullanici islemYapan)
+    {
+        List<Randevu> iptalEdilecekler = GelecekRandevulari(calisan);
+        string sebep = $"{calisan.TamAd} {DateTime.Now:dd.MM.yyyy} tarihinde pasife alındığı için iptal edildi.";
+
+        // Önce yetki kontrolü: yetkisi yoksa hiçbir şey değişmeden hata fırlatılır.
+        if (iptalEdilecekler.Any(r => !islemYapan.RandevuIptalEdebilirMi(r)))
+            throw new UnauthorizedAccessException("Bu çalışanın randevularını iptal etme yetkiniz yok.");
+
+        calisan.PasifeAl();
+        foreach (Randevu randevu in iptalEdilecekler)
+            randevu.IptalEt(islemYapan, sebep);
+
+        return iptalEdilecekler;
+    }
+
+    /// <summary>
     /// Seçilen gün için, çalışanın uygunluk dilimlerini hizmet süresi kadar parçalara bölerek
     /// olası randevu saatlerini listeler. Her saatin müsait olup olmadığı da işaretlenir.
     /// Örnek: 09:00-12:00 dilimi, 20 dakikalık hizmet → 09:00, 09:20, 09:40 ... 11:40
