@@ -1,3 +1,4 @@
+using RandevuSistemi.Arayuz.Formlar;
 using RandevuSistemi.Models.Kurumlar;
 using RandevuSistemi.Models.Randevular;
 using RandevuSistemi.Veri;
@@ -7,6 +8,7 @@ namespace RandevuSistemi.Arayuz.Ekranlar;
 /// <summary>
 /// Tüm randevuları tarih sırasıyla listeler; üstteki kutudan duruma göre filtrelenebilir.
 /// Her satırda randevu detayları (işlem, süre, ücret, çalışan, tarih/saat) ve durumu görünür.
+/// "+ Yeni Randevu" butonu randevu oluşturma penceresini açar.
 /// </summary>
 public class RandevularEkrani : UserControl
 {
@@ -24,8 +26,12 @@ public class RandevularEkrani : UserControl
         yerlesim.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));
         yerlesim.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-        // ---- Üst çubuk: durum filtresi ----
+        // ---- Üst çubuk: yeni randevu butonu + durum filtresi ----
         var ustCubuk = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false };
+        Button yeniButon = Tema.Buton("+ Yeni Randevu");
+        yeniButon.Margin = new Padding(0, 0, 24, 0);
+        yeniButon.Click += (_, _) => YeniRandevu();
+        ustCubuk.Controls.Add(yeniButon);
         ustCubuk.Controls.Add(new Label
         {
             Text = "Durum:",
@@ -108,6 +114,19 @@ public class RandevularEkrani : UserControl
         }
 
         _sayac.Text = $"{_tablo.Rows.Count} randevu";
+    }
+
+    private void YeniRandevu()
+    {
+        if (!_veri.Hastalar.Any())
+        {
+            Tema.HataGoster("Sistemde kayıtlı hasta yok.");
+            return;
+        }
+
+        using var form = new RandevuFormu(_veri);
+        if (form.ShowDialog(this) == DialogResult.OK)
+            TabloyuDoldur();
     }
 
     private string SubeAdi(Guid subeId)

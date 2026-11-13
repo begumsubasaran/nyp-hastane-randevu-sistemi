@@ -58,6 +58,10 @@ nesne_programlama/
         │   ├── Tema.cs          # Renkler, yazı tipleri, ortak görünüm ayarları
         │   ├── Ekranlar/        # Menüden açılan ekranlar (UserControl)
         │   └── Formlar/         # Ekleme/düzenleme pencereleri (dialog)
+        ├── Servisler/
+        │   ├── RandevuServisi.cs     # Randevu kuralları: uygunluk, çakışma, şube saatleri
+        │   ├── RandevuKuraliException.cs # Kural ihlalinde fırlatılan özel hata türü
+        │   └── SaatSecenegi.cs       # Randevu ekranındaki saat seçenekleri
         ├── Veri/
         │   ├── UygulamaVerisi.cs   # Tüm verileri (kurumlar, kullanıcılar, randevular) bir arada tutar
         │   ├── IVeriDeposu.cs      # Kaydetme/yükleme arayüzü (soyutlama)
@@ -116,6 +120,19 @@ Randevu
                     ↘ Reddedildi / IptalEdildi
 ```
 
+## Randevu kuralları (`RandevuServisi`)
+
+Randevu oluşturulurken sırasıyla kontrol edilir; biri sağlanmazsa `RandevuKuraliException` fırlatılır:
+
+1. Geçmiş bir zamana randevu alınamaz
+2. Çalışan aktif olmalı, bir şubeye atanmış olmalı ve seçilen hizmeti sunmalı
+3. Randevu şubenin çalışma saatleri içinde olmalı
+4. Randevu çalışanın **uygunluk zaman dilimlerinden** birinin içinde olmalı
+5. **Çakışma:** çalışanın aynı saatte başka randevusu olmamalı
+6. **Çakışma:** hastanın aynı saatte başka randevusu olmamalı
+
+Reddedilen ve iptal edilen randevular saati boşaltır, çakışma kontrolünde sayılmaz.
+
 ## Geliştirme yol haritası
 
 Her adım ayrı bir commit olarak gönderilir.
@@ -130,7 +147,7 @@ Her adım ayrı bir commit olarak gönderilir.
 | 5 | Doktor uygunluk zaman dilimleri (`UygunlukDilimi`) | ✅ |
 | 6 | Randevu modeli ve `RandevuDurumu`, randevu listesi ekranı | ✅ |
 | 7 | Veri katmanı: `IVeriDeposu` arayüzü ve JSON ile kalıcı kayıt | ✅ |
-| 8 | Randevu servisi ve çakışma kontrolü | ⏳ |
+| 8 | Randevu servisi, çakışma kontrolü ve randevu oluşturma ekranı | ✅ |
 | 9 | Randevu onay mekanizması | ⏳ |
 | 10 | Giriş sistemi ve rol bazlı menüler | ⏳ |
 | 11 | Yönetici ve doktor işlemleri, çok şube desteği | ⏳ |
