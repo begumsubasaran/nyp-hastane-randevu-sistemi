@@ -10,7 +10,9 @@ namespace RandevuSistemi.Arayuz.Ekranlar;
 /// Tüm randevuları tarih sırasıyla listeler; üstteki kutudan duruma göre filtrelenebilir.
 /// Her satırda randevu detayları (işlem, süre, ücret, çalışan, tarih/saat) ve durumu görünür.
 ///
-/// - "+ Yeni Randevu" butonu randevu oluşturma penceresini açar.
+/// - Kullanıcı sadece görme yetkisi olan randevuları görür (hasta kendi randevularını,
+///   doktor kendisine alınanları, yönetici hepsini).
+/// - "+ Yeni Randevu" butonu randevu oluşturma penceresini açar (hasta ve yönetici için).
 /// - Alttaki butonlarla seçili randevu onaylanır, reddedilir, iptal edilir veya tamamlandı yapılır.
 ///   Butonlar, randevunun durumuna ve işlemi yapan kullanıcının yetkisine göre açılıp kapanır.
 /// </summary>
@@ -43,7 +45,9 @@ public class RandevularEkrani : UserControl
         Button yeniButon = Tema.Buton("+ Yeni Randevu");
         yeniButon.Margin = new Padding(0, 0, 24, 0);
         yeniButon.Click += (_, _) => YeniRandevu();
-        ustCubuk.Controls.Add(yeniButon);
+        // Doktor/personel randevu oluşturmaz; buton sadece yetkisi olana gösterilir.
+        if (_islemYapan?.RandevuOlusturabilirMi == true)
+            ustCubuk.Controls.Add(yeniButon);
         ustCubuk.Controls.Add(new Label
         {
             Text = "Durum:",
@@ -139,7 +143,10 @@ public class RandevularEkrani : UserControl
             ? null
             : (RandevuDurumu)(_durumFiltresi.SelectedIndex - 1);
 
+        // Kullanıcı sadece görme yetkisi olan randevuları görür (ÇOK BİÇİMLİLİK:
+        // RandevuyuGorebilirMi her rolde farklı çalışır).
         IEnumerable<Randevu> randevular = _veri.Randevular
+            .Where(r => _islemYapan is not null && _islemYapan.RandevuyuGorebilirMi(r))
             .Where(r => secilenDurum is null || r.Durum == secilenDurum)
             .OrderBy(r => r.Baslangic);
 
@@ -293,7 +300,8 @@ public class RandevularEkrani : UserControl
             return;
         }
 
-        using var form = new RandevuFormu(_veri);
+        // Hasta giriş yaptıysa randevu sadece kendisi için alınabilir (hasta seçimi kilitli).
+        using var form = new RandevuFormu(_veri, _islemYapan as Hasta);
         if (form.ShowDialog(this) == DialogResult.OK)
         {
             TabloyuDoldur();

@@ -177,6 +177,15 @@ public abstract class Kullanici
     /// <summary>Bu kullanıcı verilen randevuyu iptal edebilir mi? (Varsayılan: hayır)</summary>
     public virtual bool RandevuIptalEdebilirMi(Randevu randevu) => false;
 
+    /// <summary>
+    /// Bu kullanıcı randevu listesinde verilen randevuyu görebilir mi? (Varsayılan: hayır)
+    /// Hasta → kendi randevuları, Calisan → kendisine alınanlar, Yonetici → hepsi.
+    /// </summary>
+    public virtual bool RandevuyuGorebilirMi(Randevu randevu) => false;
+
+    /// <summary>Bu kullanıcı yeni randevu oluşturabilir mi? (Varsayılan: hayır; Hasta ve Yönetici: evet)</summary>
+    public virtual bool RandevuOlusturabilirMi => false;
+
     public override string ToString() => BilgiOzeti();
 
     // ---- Alt sınıfların da kullanabileceği yardımcı metot ----

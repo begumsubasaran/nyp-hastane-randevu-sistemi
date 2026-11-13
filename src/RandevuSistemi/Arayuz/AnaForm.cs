@@ -11,6 +11,9 @@ namespace RandevuSistemi.Arayuz;
 /// UserControl'den türeyen ayrı sınıflardır; menüden seçilen ekran orta alana yerleştirilir.
 /// Bu form, tasarımcı (Designer) kullanılmadan tamamen kodla oluşturulmuştur.
 ///
+/// Menüde hangi ekranların görüneceği giriş yapan kullanıcının rolüne göre belirlenir:
+/// Hasta → Randevularım; Doktor/Personel → Randevularım + Çalışma Bilgilerim; Yönetici → tüm ekranlar.
+///
 /// Veriler otomatik kaydedilir: ekran değiştirilirken ve program kapatılırken.
 /// Form, kaydetme işini sadece IVeriDeposu arayüzü üzerinden yapar; JSON kullanıldığını bilmez.
 /// </summary>
@@ -18,6 +21,7 @@ public class AnaForm : Form
 {
     private readonly UygulamaVerisi _veri;
     private readonly IVeriDeposu _depo;
+    private readonly Kullanici _aktifKullanici;
     private readonly Label _kayitDurumu;
 
     private readonly Panel _icerik;
@@ -25,12 +29,13 @@ public class AnaForm : Form
     private readonly FlowLayoutPanel _menu;
     private Button? _aktifButon;
 
-    public AnaForm(UygulamaVerisi veri, IVeriDeposu depo)
+    public AnaForm(UygulamaVerisi veri, IVeriDeposu depo, Kullanici aktifKullanici)
     {
         _veri = veri;
         _depo = depo;
+        _aktifKullanici = aktifKullanici;
 
-        Text = "Hastane / Klinik Randevu Sistemi";
+        Text = $"Hastane / Klinik Randevu Sistemi  —  {aktifKullanici.TamAd} ({aktifKullanici.Rol.GorunenAd()})";
         Size = new Size(1200, 760);
         MinimumSize = new Size(1000, 620);
         StartPosition = FormStartPosition.CenterScreen;
@@ -80,10 +85,32 @@ public class AnaForm : Form
         };
         new ToolTip().SetToolTip(_kayitDurumu, $"Veri dosyası:\n{_depo.Konum}");
 
-        // Not: Dock sırasında son eklenen kontrol önce yerleşir.
-        // Önce "Fill" olan menüyü, sonra "Top" logoyu ve "Bottom" kayıt bilgisini ekliyoruz.
+        // Giriş yapan kullanıcının adı ve rolü
+        var kullaniciKarti = new Label
+        {
+            Dock = DockStyle.Top,
+            Height = 58,
+            ForeColor = Color.White,
+            BackColor = Tema.BirincilKoyu,
+            Font = new Font("Segoe UI", 10f),
+            TextAlign = ContentAlignment.MiddleCenter,
+            Text = $"{aktifKullanici.TamAd}\n{aktifKullanici.Rol.GorunenAd()}"
+        };
+
+        Button cikisButonu = Tema.MenuButonu("Çıkış Yap");
+        cikisButonu.Dock = DockStyle.Bottom;
+        cikisButonu.Click += (_, _) =>
+        {
+            OturumKapatildi = true; // Program.cs giriş ekranını tekrar açacak
+            Close();
+        };
+
+        // Not: Dock sırasında SON eklenen kontrol ÖNCE yerleşir.
+        // Bu yüzden "Fill" olan menü en başta eklenir; en alttaki kayıt bilgisi en sonda.
         yanPanel.Controls.Add(_menu);
+        yanPanel.Controls.Add(kullaniciKarti);
         yanPanel.Controls.Add(logo);
+        yanPanel.Controls.Add(cikisButonu);
         yanPanel.Controls.Add(_kayitDurumu);
         yerlesim.Controls.Add(yanPanel, 0, 0);
         yerlesim.SetRowSpan(yanPanel, 2);
@@ -107,24 +134,37 @@ public class AnaForm : Form
 
         Controls.Add(yerlesim);
 
-        // ---- Menü öğeleri ----
-        Button randevularButonu = MenuEkle("Randevular", () => new RandevularEkrani(_veri, AktifKullanici));
-        MenuEkle("Kurumlar", () => new KurumlarEkrani(_veri.Kurumlar));
-        MenuEkle("Hizmetler", () => new HizmetlerEkrani(_veri));
-        MenuEkle("Çalışanlar", () => new CalisanlarEkrani(_veri));
-        MenuEkle("Kullanıcılar", () => new KullanicilarEkrani(_veri.Kullanicilar));
+        // ---- Menü öğeleri: role göre ----
+        // Nesnenin gerçek türüne göre (pattern matching) farklı menü kuruluyor.
+        string randevuBasligi = _aktifKullanici is Yonetici ? "Randevular" : "Randevularım";
+        Button randevularButonu = MenuEkle(randevuBasligi, () => new RandevularEkrani(_veri, _aktifKullanici));
+
+        switch (_aktifKullanici)
+        {
+            case Yonetici:
+                MenuEkle("Kurumlar", () => new KurumlarEkrani(_veri.Kurumlar));
+                MenuEkle("Hizmetler", () => new HizmetlerEkrani(_veri));
+                MenuEkle("Çalışanlar", () => new CalisanlarEkrani(_veri));
+                MenuEkle("Kullanıcılar", () => new KullanicilarEkrani(_veri.Kullanicilar));
+                break;
+
+            case Calisan calisan:
+                // Doktor/personel sadece kendi bilgilerini (uygunluk saatleri vb.) görür.
+                MenuEkle("Çalışma Bilgilerim", () => new CalisanlarEkrani(_veri, calisan));
+                break;
+
+            // Hasta: sadece "Randevularım"
+        }
 
         // Açılışta ilk ekranı göster
-        EkranGoster(randevularButonu, "Randevular", new RandevularEkrani(_veri, AktifKullanici));
+        EkranGoster(randevularButonu, randevuBasligi, new RandevularEkrani(_veri, _aktifKullanici));
 
         // Program kapanırken son değişiklikler kaydedilir.
         FormClosing += (_, _) => VeriyiKaydet();
     }
 
-    /// <summary>
-    /// İşlemleri yapan kullanıcı. GEÇİCİ: giriş ekranı eklenene kadar sistemdeki ilk yönetici kullanılıyor.
-    /// </summary>
-    private Kullanici? AktifKullanici => _veri.Kullanicilar.OfType<Yonetici>().FirstOrDefault();
+    /// <summary>"Çıkış Yap" ile kapatıldıysa true; X ile kapatıldıysa false (program biter).</summary>
+    public bool OturumKapatildi { get; private set; }
 
     /// <summary>Tüm verileri depoya kaydeder; hata olursa kullanıcıya bildirir.</summary>
     private void VeriyiKaydet()

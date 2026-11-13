@@ -167,6 +167,9 @@ public abstract class Calisan : Kullanici
     /// <summary>Doktor/personel kendisine alınmış randevuyu iptal edebilir.</summary>
     public override bool RandevuIptalEdebilirMi(Randevu randevu) => randevu.CalisanId == Id;
 
+    /// <summary>Doktor/personel sadece kendisine alınmış randevuları görür.</summary>
+    public override bool RandevuyuGorebilirMi(Randevu randevu) => randevu.CalisanId == Id;
+
     public override string BilgiOzeti() =>
         $"{base.BilgiOzeti()} - {Unvan}{(AktifMi ? "" : " (pasif)")}";
 }

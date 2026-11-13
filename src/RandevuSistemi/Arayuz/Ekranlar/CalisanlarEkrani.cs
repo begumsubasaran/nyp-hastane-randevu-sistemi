@@ -11,6 +11,9 @@ namespace RandevuSistemi.Arayuz.Ekranlar;
 /// - çalıştığı şubesi değiştirilebilir,
 /// - sunduğu hizmetler işaretlenerek belirlenebilir,
 /// - haftalık uygunluk saatleri (randevu verebildiği zaman dilimleri) eklenebilir, düzenlenebilir, silinebilir.
+///
+/// Doktor/personel giriş yaptığında ("sadeceBuCalisan" dolu) sadece kendi bilgileri görünür;
+/// şubesini ve hizmetlerini değiştiremez (bunu yönetici yapar), uygunluk saatlerini düzenleyebilir.
 /// </summary>
 public class CalisanlarEkrani : UserControl
 {
@@ -31,12 +34,14 @@ public class CalisanlarEkrani : UserControl
     private readonly ListBox _dilimListesi;
     private readonly Label _uygunlukNotu;
 
+    private readonly Calisan? _sadeceBuCalisan;
     private Calisan? _seciliCalisan;
     private bool _yukleniyor; // ekran doldurulurken olayların (event) tetiklenmesini engellemek için
 
-    public CalisanlarEkrani(UygulamaVerisi veri)
+    public CalisanlarEkrani(UygulamaVerisi veri, Calisan? sadeceBuCalisan = null)
     {
         _veri = veri;
+        _sadeceBuCalisan = sadeceBuCalisan;
         BackColor = Tema.Arkaplan;
 
         var yerlesim = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1 };
@@ -173,12 +178,23 @@ public class CalisanlarEkrani : UserControl
 
         Controls.Add(yerlesim);
 
+        // Doktor/personel kendi ekranında şube ve hizmetlerini değiştiremez.
+        if (_sadeceBuCalisan is not null)
+        {
+            _subeKutusu.Enabled = false;
+            _hizmetListesi.Enabled = false;
+        }
+
         _gunKutusu.SelectedIndex = 0;
         TabloyuDoldur();
-        Calisan? ilk = _veri.Calisanlar.FirstOrDefault();
+        Calisan? ilk = GosterilecekCalisanlar().FirstOrDefault();
         if (ilk is not null)
             DetayGoster(ilk);
     }
+
+    /// <summary>Yönetici için tüm çalışanlar; doktor/personel için sadece kendisi.</summary>
+    private IEnumerable<Calisan> GosterilecekCalisanlar() =>
+        _sadeceBuCalisan is null ? _veri.Calisanlar : [_sadeceBuCalisan];
 
     // =====================================================================
     // Tablo
@@ -187,7 +203,7 @@ public class CalisanlarEkrani : UserControl
     private void TabloyuDoldur()
     {
         _tablo.Rows.Clear();
-        foreach (Calisan calisan in _veri.Calisanlar)
+        foreach (Calisan calisan in GosterilecekCalisanlar())
         {
             int satir = _tablo.Rows.Add(calisan.TamAd, "", "", "", "");
             _tablo.Rows[satir].Tag = calisan;
@@ -320,7 +336,9 @@ public class CalisanlarEkrani : UserControl
 
             _hizmetNotu.Text = sube.Hizmetler.Count == 0
                 ? $"{sube.Ad} için henüz hizmet tanımlanmamış (Hizmetler ekranından ekleyin)."
-                : "Hasta, bu çalışandan sadece işaretli hizmetler için randevu alabilir.";
+                : _sadeceBuCalisan is not null
+                    ? "Sunduğunuz hizmetler yönetici tarafından belirlenir."
+                    : "Hasta, bu çalışandan sadece işaretli hizmetler için randevu alabilir.";
         }
 
         _yukleniyor = oncekiDurum;

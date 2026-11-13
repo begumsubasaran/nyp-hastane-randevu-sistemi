@@ -45,6 +45,12 @@ public class Hasta : Kullanici
     /// <summary>Hasta sadece KENDİ randevusunu iptal edebilir; onaylama yetkisi yoktur.</summary>
     public override bool RandevuIptalEdebilirMi(Randevu randevu) => randevu.HastaId == Id;
 
+    /// <summary>Hasta sadece kendi randevularını görür.</summary>
+    public override bool RandevuyuGorebilirMi(Randevu randevu) => randevu.HastaId == Id;
+
+    /// <summary>Hasta kendisi için randevu alabilir.</summary>
+    public override bool RandevuOlusturabilirMi => true;
+
     /// <summary>Üst sınıftaki özet + hastaya özel bilgi (override + base çağrısı).</summary>
     public override string BilgiOzeti() => $"{base.BilgiOzeti()} - Yaş: {Yas}";
 }

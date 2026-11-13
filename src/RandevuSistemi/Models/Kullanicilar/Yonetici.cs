@@ -36,6 +36,12 @@ public class Yonetici : Kullanici
     /// <summary>Yönetici tüm randevuları iptal edebilir.</summary>
     public override bool RandevuIptalEdebilirMi(Randevu randevu) => true;
 
+    /// <summary>Yönetici tüm randevuları görür.</summary>
+    public override bool RandevuyuGorebilirMi(Randevu randevu) => true;
+
+    /// <summary>Yönetici herhangi bir hasta adına randevu oluşturabilir (ör. telefonla arayan hasta).</summary>
+    public override bool RandevuOlusturabilirMi => true;
+
     public override string BilgiOzeti()
     {
         string yetkiAdi = Yetki == YoneticiYetkisi.SistemYoneticisi ? "Sistem Yöneticisi" : "Kurum Yöneticisi";

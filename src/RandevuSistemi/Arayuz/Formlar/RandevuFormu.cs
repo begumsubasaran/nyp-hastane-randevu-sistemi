@@ -33,7 +33,11 @@ public class RandevuFormu : Form
         public override string ToString() => $"{Calisan.TamAd}  -  {Calisan.Unvan}";
     }
 
-    public RandevuFormu(UygulamaVerisi veri)
+    /// <param name="sabitHasta">
+    /// Doluysa (hasta kendisi giriş yaptıysa) hasta seçimi bu kişiye kilitlenir.
+    /// Boşsa (yönetici) tüm hastalar arasından seçim yapılabilir.
+    /// </param>
+    public RandevuFormu(UygulamaVerisi veri, Hasta? sabitHasta = null)
     {
         _veri = veri;
         _servis = new RandevuServisi(veri);
@@ -58,8 +62,16 @@ public class RandevuFormu : Form
 
         _hastaKutusu = Kutu();
         _hastaKutusu.DisplayMember = nameof(Kullanici.TamAd); // ekranda TamAd property'si görünsün
-        foreach (Hasta hasta in _veri.Hastalar)
-            _hastaKutusu.Items.Add(hasta);
+        if (sabitHasta is not null)
+        {
+            _hastaKutusu.Items.Add(sabitHasta);
+            _hastaKutusu.Enabled = false;
+        }
+        else
+        {
+            foreach (Hasta hasta in _veri.Hastalar)
+                _hastaKutusu.Items.Add(hasta);
+        }
 
         _subeKutusu = Kutu();
         foreach (SubeSecenegi secenek in SubeSecenegi.Tumu(_veri))

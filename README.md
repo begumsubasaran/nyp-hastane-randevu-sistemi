@@ -33,6 +33,19 @@ dotnet run --project src/RandevuSistemi
 
 Visual Studio 2022 ile: `src/RandevuSistemi/RandevuSistemi.csproj` dosyasını açıp **F5** ile çalıştırın.
 
+## Giriş ve roller
+
+Program giriş ekranıyla açılır. Örnek hesaplar (hepsinin şifresi `sifre123`):
+
+| Kullanıcı adı | Rol | Görebildiği ekranlar |
+|---|---|---|
+| `ayse`, `can` | Hasta | Randevularım (kendi randevuları, yeni randevu alma, iptal) |
+| `drmehmet`, `drelif`, `drhakan` | Doktor | Randevularım (kendisine alınanlar, onay/ret/tamamlama), Çalışma Bilgilerim (uygunluk saatleri) |
+| `zeynep`, `burak` | Sağlık Personeli | Doktor ile aynı |
+| `admin` | Yönetici | Tüm ekranlar ve tüm randevular |
+
+"Çıkış Yap" ile giriş ekranına dönülür.
+
 ## Veri dosyası
 
 Veriler program kapatılırken ve ekran değiştirilirken otomatik olarak JSON dosyasına kaydedilir:
@@ -61,6 +74,7 @@ nesne_programlama/
         ├── Servisler/
         │   ├── RandevuServisi.cs     # Randevu kuralları: uygunluk, çakışma, şube saatleri
         │   ├── RandevuKuraliException.cs # Kural ihlalinde fırlatılan özel hata türü
+        │   ├── OturumServisi.cs      # Kullanıcı adı / şifre ile giriş
         │   └── SaatSecenegi.cs       # Randevu ekranındaki saat seçenekleri
         ├── Veri/
         │   ├── UygulamaVerisi.cs   # Tüm verileri (kurumlar, kullanıcılar, randevular) bir arada tutar
@@ -154,6 +168,9 @@ Yetki kuralları her rolün kendi sınıfında `override` edilir (çok biçimlil
 | `Calisan` (Doktor, Sağlık Personeli) | Sadece kendisine alınan randevular | Sadece kendisine alınan randevular |
 | `Yonetici` | Tüm randevular | Tüm randevular |
 
+Aynı şekilde `RandevuyuGorebilirMi` ve `RandevuOlusturabilirMi` de her rolde `override` edilir;
+ekranlar kullanıcının rolünü kontrol etmek yerine bu metotlara sorar.
+
 ## Geliştirme yol haritası
 
 Her adım ayrı bir commit olarak gönderilir.
@@ -170,6 +187,6 @@ Her adım ayrı bir commit olarak gönderilir.
 | 7 | Veri katmanı: `IVeriDeposu` arayüzü ve JSON ile kalıcı kayıt | ✅ |
 | 8 | Randevu servisi, çakışma kontrolü ve randevu oluşturma ekranı | ✅ |
 | 9 | Randevu onay mekanizması (onayla, reddet, iptal, tamamla) ve rol bazlı yetkiler | ✅ |
-| 10 | Giriş sistemi ve rol bazlı menüler | ⏳ |
+| 10 | Giriş sistemi ve rol bazlı menüler | ✅ |
 | 11 | Yönetici ve doktor işlemleri, çok şube desteği | ⏳ |
 | 12 | Örnek veriler, UML sınıf diyagramı, son düzenlemeler | ⏳ |

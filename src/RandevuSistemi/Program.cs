@@ -1,11 +1,13 @@
 using System.Text.Json;
 using RandevuSistemi.Arayuz;
+using RandevuSistemi.Arayuz.Formlar;
+using RandevuSistemi.Models.Kullanicilar;
 using RandevuSistemi.Veri;
 
 namespace RandevuSistemi;
 
 /// <summary>
-/// Uygulamanın giriş noktası. Verileri yükler ve ana pencereyi açar.
+/// Uygulamanın giriş noktası. Verileri yükler, giriş penceresini ve ardından ana pencereyi açar.
 /// </summary>
 internal static class Program
 {
@@ -22,7 +24,28 @@ internal static class Program
         IVeriDeposu depo = new JsonVeriDeposu(dosyaYolu);
 
         UygulamaVerisi veri = VeriyiYukle(depo);
-        Application.Run(new AnaForm(veri, depo));
+
+        // Giriş → Ana pencere → (Çıkış yapılırsa) tekrar Giriş ...
+        // Ana pencere X ile kapatılırsa veya girişten vazgeçilirse program biter.
+        while (true)
+        {
+            Kullanici? kullanici;
+            using (var giris = new GirisFormu(veri))
+            {
+                if (giris.ShowDialog() != DialogResult.OK)
+                    break;
+                kullanici = giris.GirisYapan;
+            }
+
+            if (kullanici is null)
+                break;
+
+            var anaForm = new AnaForm(veri, depo, kullanici);
+            Application.Run(anaForm);
+
+            if (!anaForm.OturumKapatildi)
+                break;
+        }
     }
 
     /// <summary>
