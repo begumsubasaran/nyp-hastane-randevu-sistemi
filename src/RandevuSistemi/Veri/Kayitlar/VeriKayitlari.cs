@@ -129,4 +129,6 @@ public class RandevuKaydi
     public DateTime OlusturmaZamani { get; set; }
     public RandevuDurumu Durum { get; set; }
     public string? Not { get; set; }
+    public string? SonIslemYapan { get; set; }
+    public DateTime? SonIslemZamani { get; set; }
 }

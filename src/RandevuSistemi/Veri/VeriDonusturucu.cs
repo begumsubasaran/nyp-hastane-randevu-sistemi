@@ -121,7 +121,9 @@ public static class VeriDonusturucu
         Baslangic = r.Baslangic,
         OlusturmaZamani = r.OlusturmaZamani,
         Durum = r.Durum,
-        Not = r.Not
+        Not = r.Not,
+        SonIslemYapan = r.SonIslemYapan,
+        SonIslemZamani = r.SonIslemZamani
     };
 
     // =========================================================================
@@ -148,7 +150,8 @@ public static class VeriDonusturucu
             veri.Randevular.Add(Randevu.KayittanYukle(
                 r.Id, r.HastaId, r.CalisanId, r.SubeId, r.HizmetId,
                 r.HastaAdi, r.CalisanAdi, r.HizmetAdi, r.SureDakika, r.Ucret,
-                r.Baslangic, r.OlusturmaZamani, r.Durum, r.Not));
+                r.Baslangic, r.OlusturmaZamani, r.Durum, r.Not,
+                r.SonIslemYapan, r.SonIslemZamani));
         }
 
         return veri;

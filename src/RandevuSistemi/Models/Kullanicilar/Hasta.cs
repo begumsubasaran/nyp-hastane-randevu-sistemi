@@ -1,3 +1,5 @@
+using RandevuSistemi.Models.Randevular;
+
 namespace RandevuSistemi.Models.Kullanicilar;
 
 /// <summary>
@@ -39,6 +41,9 @@ public class Hasta : Kullanici
             return yas;
         }
     }
+
+    /// <summary>Hasta sadece KENDİ randevusunu iptal edebilir; onaylama yetkisi yoktur.</summary>
+    public override bool RandevuIptalEdebilirMi(Randevu randevu) => randevu.HastaId == Id;
 
     /// <summary>Üst sınıftaki özet + hastaya özel bilgi (override + base çağrısı).</summary>
     public override string BilgiOzeti() => $"{base.BilgiOzeti()} - Yaş: {Yas}";

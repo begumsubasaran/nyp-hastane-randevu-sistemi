@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using RandevuSistemi.Models.Randevular;
 
 namespace RandevuSistemi.Models.Kullanicilar;
 
@@ -165,6 +166,16 @@ public abstract class Kullanici
     /// override ederek kendi bilgilerini ekleyebilir.
     /// </summary>
     public virtual string BilgiOzeti() => $"[{this.Rol.GorunenAd()}] {TamAd} (kullanıcı adı: {KullaniciAdi})";
+
+    /// <summary>
+    /// Bu kullanıcı verilen randevuyu onaylayabilir / reddedebilir / tamamlayabilir mi?
+    /// Varsayılan: hayır. Her rol bu metodu kendi kuralıyla OVERRIDE eder (çok biçimlilik):
+    /// Calisan → sadece kendi randevuları, Yonetici → hepsi, Hasta → hiçbiri.
+    /// </summary>
+    public virtual bool RandevuOnaylayabilirMi(Randevu randevu) => false;
+
+    /// <summary>Bu kullanıcı verilen randevuyu iptal edebilir mi? (Varsayılan: hayır)</summary>
+    public virtual bool RandevuIptalEdebilirMi(Randevu randevu) => false;
 
     public override string ToString() => BilgiOzeti();
 

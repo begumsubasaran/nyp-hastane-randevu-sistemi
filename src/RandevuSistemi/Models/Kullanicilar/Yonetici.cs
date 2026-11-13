@@ -1,3 +1,5 @@
+using RandevuSistemi.Models.Randevular;
+
 namespace RandevuSistemi.Models.Kullanicilar;
 
 /// <summary>
@@ -27,6 +29,12 @@ public class Yonetici : Kullanici
     public override Rol Rol => Rol.Yonetici;
 
     public YoneticiYetkisi Yetki { get; set; }
+
+    /// <summary>Yönetici tüm randevuları onaylayabilir / reddedebilir / tamamlayabilir.</summary>
+    public override bool RandevuOnaylayabilirMi(Randevu randevu) => true;
+
+    /// <summary>Yönetici tüm randevuları iptal edebilir.</summary>
+    public override bool RandevuIptalEdebilirMi(Randevu randevu) => true;
 
     public override string BilgiOzeti()
     {

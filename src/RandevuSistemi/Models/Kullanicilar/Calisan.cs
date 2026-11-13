@@ -159,6 +159,14 @@ public abstract class Calisan : Kullanici
         return _uygunlukDilimleri.Any(d => d.Gun == baslangic.DayOfWeek && d.KapsarMi(bas, bit));
     }
 
+    // ---------------- Randevu yetkileri (Kullanici'daki virtual metotların override'ı) ----------------
+
+    /// <summary>Doktor/personel sadece KENDİSİNE alınmış randevuları onaylayabilir, reddedebilir, tamamlayabilir.</summary>
+    public override bool RandevuOnaylayabilirMi(Randevu randevu) => randevu.CalisanId == Id;
+
+    /// <summary>Doktor/personel kendisine alınmış randevuyu iptal edebilir.</summary>
+    public override bool RandevuIptalEdebilirMi(Randevu randevu) => randevu.CalisanId == Id;
+
     public override string BilgiOzeti() =>
         $"{base.BilgiOzeti()} - {Unvan}{(AktifMi ? "" : " (pasif)")}";
 }

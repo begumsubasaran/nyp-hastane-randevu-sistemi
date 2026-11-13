@@ -66,6 +66,10 @@ public static class Tema
         };
         buton.FlatAppearance.BorderSize = birincil ? 0 : 1;
         buton.FlatAppearance.BorderColor = Cizgi;
+
+        // Pasif (Enabled = false) buton gri görünsün ki tıklanamayacağı anlaşılsın.
+        buton.EnabledChanged += (_, _) =>
+            buton.BackColor = buton.Enabled ? (birincil ? Vurgu : Kart) : Color.FromArgb(233, 236, 239);
         return buton;
     }
 

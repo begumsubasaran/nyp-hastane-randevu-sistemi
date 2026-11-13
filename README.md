@@ -133,6 +133,27 @@ Randevu oluşturulurken sırasıyla kontrol edilir; biri sağlanmazsa `RandevuKu
 
 Reddedilen ve iptal edilen randevular saati boşaltır, çakışma kontrolünde sayılmaz.
 
+## Onay mekanizması
+
+```
+Beklemede ──Onayla──► Onaylandi ──Tamamla──► Tamamlandi
+    │                     │
+    ├──Reddet──► Reddedildi (sebep zorunlu)
+    └──IptalEt──► IptalEdildi ◄──IptalEt──┘
+```
+
+Durum sadece `Randevu` sınıfının `Onayla`, `Reddet`, `IptalEt`, `Tamamla` metotlarıyla değişir.
+Her metot önce **yetkiyi**, sonra **durum geçişinin** kurallara uygunluğunu kontrol eder.
+
+Yetki kuralları her rolün kendi sınıfında `override` edilir (çok biçimlilik):
+
+| Rol | Onaylama / Reddetme / Tamamlama | İptal |
+|---|---|---|
+| `Kullanici` (varsayılan) | Hayır | Hayır |
+| `Hasta` | Hayır | Sadece kendi randevusu |
+| `Calisan` (Doktor, Sağlık Personeli) | Sadece kendisine alınan randevular | Sadece kendisine alınan randevular |
+| `Yonetici` | Tüm randevular | Tüm randevular |
+
 ## Geliştirme yol haritası
 
 Her adım ayrı bir commit olarak gönderilir.
@@ -148,7 +169,7 @@ Her adım ayrı bir commit olarak gönderilir.
 | 6 | Randevu modeli ve `RandevuDurumu`, randevu listesi ekranı | ✅ |
 | 7 | Veri katmanı: `IVeriDeposu` arayüzü ve JSON ile kalıcı kayıt | ✅ |
 | 8 | Randevu servisi, çakışma kontrolü ve randevu oluşturma ekranı | ✅ |
-| 9 | Randevu onay mekanizması | ⏳ |
+| 9 | Randevu onay mekanizması (onayla, reddet, iptal, tamamla) ve rol bazlı yetkiler | ✅ |
 | 10 | Giriş sistemi ve rol bazlı menüler | ⏳ |
 | 11 | Yönetici ve doktor işlemleri, çok şube desteği | ⏳ |
 | 12 | Örnek veriler, UML sınıf diyagramı, son düzenlemeler | ⏳ |

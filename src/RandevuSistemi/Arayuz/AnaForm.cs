@@ -1,4 +1,5 @@
 using RandevuSistemi.Arayuz.Ekranlar;
+using RandevuSistemi.Models.Kullanicilar;
 using RandevuSistemi.Veri;
 
 namespace RandevuSistemi.Arayuz;
@@ -107,18 +108,23 @@ public class AnaForm : Form
         Controls.Add(yerlesim);
 
         // ---- Menü öğeleri ----
-        Button randevularButonu = MenuEkle("Randevular", () => new RandevularEkrani(_veri));
+        Button randevularButonu = MenuEkle("Randevular", () => new RandevularEkrani(_veri, AktifKullanici));
         MenuEkle("Kurumlar", () => new KurumlarEkrani(_veri.Kurumlar));
         MenuEkle("Hizmetler", () => new HizmetlerEkrani(_veri));
         MenuEkle("Çalışanlar", () => new CalisanlarEkrani(_veri));
         MenuEkle("Kullanıcılar", () => new KullanicilarEkrani(_veri.Kullanicilar));
 
         // Açılışta ilk ekranı göster
-        EkranGoster(randevularButonu, "Randevular", new RandevularEkrani(_veri));
+        EkranGoster(randevularButonu, "Randevular", new RandevularEkrani(_veri, AktifKullanici));
 
         // Program kapanırken son değişiklikler kaydedilir.
         FormClosing += (_, _) => VeriyiKaydet();
     }
+
+    /// <summary>
+    /// İşlemleri yapan kullanıcı. GEÇİCİ: giriş ekranı eklenene kadar sistemdeki ilk yönetici kullanılıyor.
+    /// </summary>
+    private Kullanici? AktifKullanici => _veri.Kullanicilar.OfType<Yonetici>().FirstOrDefault();
 
     /// <summary>Tüm verileri depoya kaydeder; hata olursa kullanıcıya bildirir.</summary>
     private void VeriyiKaydet()
