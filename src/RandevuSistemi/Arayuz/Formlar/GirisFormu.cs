@@ -7,19 +7,24 @@ namespace RandevuSistemi.Arayuz.Formlar;
 /// <summary>
 /// Program açılınca gösterilen giriş penceresi.
 /// Doğru kullanıcı adı ve şifre girilince "GirisYapan" dolar ve pencere OK ile kapanır.
+/// Hesabı olmayan hastalar buradan kendilerini kaydedebilir.
 /// </summary>
 public class GirisFormu : Form
 {
     private readonly OturumServisi _oturum;
+    private readonly UygulamaVerisi _veri;
+    private readonly IVeriDeposu _depo;
     private readonly TextBox _kullaniciAdiKutusu;
     private readonly TextBox _sifreKutusu;
 
-    public GirisFormu(UygulamaVerisi veri)
+    public GirisFormu(UygulamaVerisi veri, IVeriDeposu depo)
     {
         _oturum = new OturumServisi(veri);
+        _veri = veri;
+        _depo = depo;
 
         Text = "Giriş - Hastane / Klinik Randevu Sistemi";
-        ClientSize = new Size(440, 470);
+        ClientSize = new Size(440, 500);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
@@ -36,7 +41,7 @@ public class GirisFormu : Form
         tablo.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));  // kutu
         tablo.RowStyles.Add(new RowStyle(SizeType.Absolute, 58));  // giriş butonu
         tablo.RowStyles.Add(new RowStyle(SizeType.Percent, 100));  // örnek hesaplar
-        tablo.RowStyles.Add(new RowStyle(SizeType.Absolute, 4));
+        tablo.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));  // kayıt ol bağlantısı
 
         var baslik = new Label
         {
@@ -85,6 +90,16 @@ public class GirisFormu : Form
         tablo.Controls.Add(_sifreKutusu, 0, 5);
         tablo.Controls.Add(girisButonu, 0, 6);
         tablo.Controls.Add(ornekHesaplar, 0, 7);
+
+        var kayitBaglantisi = new LinkLabel
+        {
+            Text = "Hesabınız yok mu? Hasta olarak kayıt olun",
+            Dock = DockStyle.Fill,
+            TextAlign = ContentAlignment.MiddleCenter,
+            LinkColor = Tema.Vurgu
+        };
+        kayitBaglantisi.LinkClicked += (_, _) => HastaKaydiAc();
+        tablo.Controls.Add(kayitBaglantisi, 0, 8);
         Controls.Add(tablo);
 
         AcceptButton = girisButonu; // Enter ile giriş
@@ -107,6 +122,28 @@ public class GirisFormu : Form
             _sifreKutusu.Clear();
             _sifreKutusu.Focus();
         }
+    }
+
+    /// <summary>Hasta kayıt penceresini açar; kayıt başarılıysa veriyi kaydeder ve kullanıcı adını doldurur.</summary>
+    private void HastaKaydiAc()
+    {
+        using var form = new HastaKayitFormu(_veri);
+        if (form.ShowDialog(this) != DialogResult.OK || form.OlusturulanKullanici is null)
+            return;
+
+        try
+        {
+            _depo.Kaydet(_veri);
+        }
+        catch (Exception hata) when (hata is IOException or UnauthorizedAccessException)
+        {
+            Tema.HataGoster($"Kayıt yapıldı ama dosyaya yazılamadı:\n{hata.Message}");
+        }
+
+        _kullaniciAdiKutusu.Text = form.OlusturulanKullanici.KullaniciAdi;
+        _sifreKutusu.Clear();
+        _sifreKutusu.Focus();
+        Tema.BilgiGoster("Kaydınız tamamlandı. Şifrenizi girerek giriş yapabilirsiniz.");
     }
 
     private static Label KucukEtiket(string metin) => new()

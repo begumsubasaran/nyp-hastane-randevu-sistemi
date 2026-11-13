@@ -1,3 +1,4 @@
+using RandevuSistemi.Arayuz.Formlar;
 using RandevuSistemi.Models.Hizmetler;
 using RandevuSistemi.Models.Kullanicilar;
 using RandevuSistemi.Models.Kurumlar;
@@ -35,6 +36,7 @@ public class CalisanlarEkrani : UserControl
     private readonly Label _uygunlukNotu;
 
     private readonly Calisan? _sadeceBuCalisan;
+    private readonly Button _aktiflikButonu;
     private Calisan? _seciliCalisan;
     private bool _yukleniyor; // ekran doldurulurken olayların (event) tetiklenmesini engellemek için
 
@@ -66,7 +68,27 @@ public class CalisanlarEkrani : UserControl
             if (_tablo.CurrentRow?.Tag is Calisan calisan)
                 DetayGoster(calisan);
         };
-        yerlesim.Controls.Add(_tablo, 0, 0);
+
+        // Tablonun üstünde: yeni çalışan kaydı ve pasife alma (sadece yönetici görünümünde)
+        var solTaraf = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2, Margin = new Padding(0, 0, 12, 0) };
+        solTaraf.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
+        solTaraf.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+
+        var solButonlar = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false };
+        _aktiflikButonu = Tema.Buton("Pasife Al", birincil: false);
+        _aktiflikButonu.Click += (_, _) => AktiflikDegistir();
+        if (_sadeceBuCalisan is null)
+        {
+            Button yeniButon = Tema.Buton("+ Yeni Çalışan");
+            yeniButon.Click += (_, _) => YeniCalisan();
+            solButonlar.Controls.Add(yeniButon);
+            solButonlar.Controls.Add(_aktiflikButonu);
+        }
+        solTaraf.Controls.Add(solButonlar, 0, 0);
+
+        _tablo.Margin = new Padding(0);
+        solTaraf.Controls.Add(_tablo, 0, 1);
+        yerlesim.Controls.Add(solTaraf, 0, 0);
 
         // ================= Sağ: seçili çalışanın ayrıntıları =================
         var detay = new TableLayoutPanel
@@ -221,6 +243,7 @@ public class CalisanlarEkrani : UserControl
         Sube? sube = _veri.SubeBul(calisan.SubeId);
 
         // ÇOK BİÇİMLİLİK: Unvan soyut bir property; Doktor ve SaglikPersoneli farklı değer döndürür.
+        satir.Cells["ad"].Value = calisan.TamAd + (calisan.AktifMi ? "" : "  (pasif)");
         satir.Cells["unvan"].Value = calisan.Unvan;
         satir.Cells["sube"].Value = kurum is null || sube is null ? "— atanmamış —" : $"{kurum.Ad} / {sube.Ad}";
         satir.Cells["hizmet"].Value = calisan.HizmetIdleri.Count;
@@ -256,7 +279,73 @@ public class CalisanlarEkrani : UserControl
         HizmetListesiniDoldur();
         UygunlukListesiniDoldur();
         SaatleriSubeyeGoreAyarla();
+        _aktiflikButonu.Text = calisan.AktifMi ? "Pasife Al" : "Aktif Et";
         _yukleniyor = false;
+    }
+
+    // =====================================================================
+    // Çalışan kaydı ve aktif/pasif (yönetici)
+    // =====================================================================
+
+    private void YeniCalisan()
+    {
+        if (!_veri.Kurumlar.SelectMany(k => k.Subeler).Any())
+        {
+            Tema.HataGoster("Önce Kurumlar ekranından en az bir şube tanımlayın.");
+            return;
+        }
+
+        using var form = new CalisanFormu(_veri);
+        if (form.ShowDialog(this) != DialogResult.OK || form.OlusturulanKullanici is not Calisan yeniCalisan)
+            return;
+
+        TabloyuDoldur();
+        SatiriSec(yeniCalisan);
+        DetayGoster(yeniCalisan);
+        Tema.BilgiGoster($"{yeniCalisan.TamAd} ({yeniCalisan.Unvan}) kaydedildi.\n\n" +
+                         "Şimdi sağ taraftan sunduğu hizmetleri ve uygunluk saatlerini tanımlayın.");
+    }
+
+    /// <summary>
+    /// İşten ayrılan çalışan silinmez, pasife alınır: geçmiş randevuları korunur,
+    /// ama yeni randevu alınamaz ve sisteme giriş yapamaz.
+    /// </summary>
+    private void AktiflikDegistir()
+    {
+        if (_seciliCalisan is not { } calisan)
+            return;
+
+        if (calisan.AktifMi)
+        {
+            DialogResult cevap = MessageBox.Show(
+                $"{calisan.TamAd} pasife alınsın mı?\n\nPasif çalışana yeni randevu alınamaz ve sisteme giriş yapamaz. " +
+                "Geçmiş randevuları korunur.",
+                "Pasife Al", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            if (cevap != DialogResult.Yes)
+                return;
+
+            calisan.PasifeAl();
+        }
+        else
+        {
+            calisan.AktifEt();
+        }
+
+        SeciliSatiriGuncelle();
+        DetayGoster(calisan);
+        Tema.BilgiGoster($"{calisan.TamAd} {(calisan.AktifMi ? "tekrar aktif edildi" : "pasife alındı")}.");
+    }
+
+    private void SatiriSec(Calisan calisan)
+    {
+        foreach (DataGridViewRow satir in _tablo.Rows)
+        {
+            if (ReferenceEquals(satir.Tag, calisan))
+            {
+                _tablo.CurrentCell = satir.Cells[0];
+                break;
+            }
+        }
     }
 
     private void SubeDegisti()

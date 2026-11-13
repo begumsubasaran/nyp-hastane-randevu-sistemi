@@ -46,6 +46,18 @@ Program giriş ekranıyla açılır. Örnek hesaplar (hepsinin şifresi `sifre12
 
 "Çıkış Yap" ile giriş ekranına dönülür.
 
+## Ekleme pencereleri (arayüzde kalıtım)
+
+```
+Form (.NET)
+└── DialogFormTemeli (abstract)      → ortak düzen, Kaydet/İptal, hata gösterimi ("Template Method")
+    ├── KurumFormu                   → yeni hastane/klinik + ilk şubesi (sadece Sistem Yöneticisi)
+    ├── SubeFormu                    → kuruma yeni şube (sadece Sistem Yöneticisi)
+    └── KullaniciFormuTemeli (abstract) → ad, soyad, TC, kullanıcı adı, şifre, telefon, e-posta
+        ├── HastaKayitFormu          → + doğum tarihi (giriş ekranından "kayıt ol")
+        └── CalisanFormu             → + tür, uzmanlık/unvan veya görev, şube (yönetici)
+```
+
 ## Veri dosyası
 
 Veriler program kapatılırken ve ekran değiştirilirken otomatik olarak JSON dosyasına kaydedilir:
@@ -70,7 +82,7 @@ nesne_programlama/
         │   ├── AnaForm.cs       # Ana pencere: yan menü + içerik alanı
         │   ├── Tema.cs          # Renkler, yazı tipleri, ortak görünüm ayarları
         │   ├── Ekranlar/        # Menüden açılan ekranlar (UserControl)
-        │   └── Formlar/         # Ekleme/düzenleme pencereleri (dialog)
+        │   └── Formlar/         # Pencereler: giriş, randevu, ekleme formları (DialogFormTemeli'nden türeyen)
         ├── Servisler/
         │   ├── RandevuServisi.cs     # Randevu kuralları: uygunluk, çakışma, şube saatleri
         │   ├── RandevuKuraliException.cs # Kural ihlalinde fırlatılan özel hata türü
@@ -188,5 +200,5 @@ Her adım ayrı bir commit olarak gönderilir.
 | 8 | Randevu servisi, çakışma kontrolü ve randevu oluşturma ekranı | ✅ |
 | 9 | Randevu onay mekanizması (onayla, reddet, iptal, tamamla) ve rol bazlı yetkiler | ✅ |
 | 10 | Giriş sistemi ve rol bazlı menüler | ✅ |
-| 11 | Yönetici ve doktor işlemleri, çok şube desteği | ⏳ |
+| 11 | Yönetim ekranları: kurum/şube ekleme, çalışma saati ve bölüm düzenleme, çalışan kaydı ve pasife alma, hasta kaydı | ✅ |
 | 12 | Örnek veriler, UML sınıf diyagramı, son düzenlemeler | ⏳ |

@@ -24,6 +24,28 @@ public class UygulamaVerisi
     public IEnumerable<Hasta> Hastalar => Kullanicilar.OfType<Hasta>();
 
     /// <summary>
+    /// Yeni kullanıcı ekler. Kullanıcı adı ve TC Kimlik No sistemde benzersiz olmalıdır.
+    /// </summary>
+    public void KullaniciEkle(Kullanici kullanici)
+    {
+        if (Kullanicilar.Any(k => k.KullaniciAdi == kullanici.KullaniciAdi))
+            throw new InvalidOperationException($"\"{kullanici.KullaniciAdi}\" kullanıcı adı zaten kullanılıyor.");
+        if (Kullanicilar.Any(k => k.TcKimlikNo == kullanici.TcKimlikNo))
+            throw new InvalidOperationException("Bu TC Kimlik No ile kayıtlı bir kullanıcı zaten var.");
+
+        Kullanicilar.Add(kullanici);
+    }
+
+    /// <summary>Yeni kurum ekler. Aynı isimde kurum olamaz.</summary>
+    public void KurumEkle(Kurum kurum)
+    {
+        if (Kurumlar.Any(k => string.Equals(k.Ad, kurum.Ad, StringComparison.CurrentCultureIgnoreCase)))
+            throw new InvalidOperationException($"\"{kurum.Ad}\" adında bir kurum zaten var.");
+
+        Kurumlar.Add(kurum);
+    }
+
+    /// <summary>
     /// Kimliğe göre kullanıcı bulur. Generic (T) sayesinde istenen türde döner:
     /// KullaniciBul&lt;Hasta&gt;(id) → Hasta?, KullaniciBul&lt;Calisan&gt;(id) → Calisan?
     /// </summary>

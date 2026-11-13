@@ -42,6 +42,12 @@ public class Yonetici : Kullanici
     /// <summary>Yönetici herhangi bir hasta adına randevu oluşturabilir (ör. telefonla arayan hasta).</summary>
     public override bool RandevuOlusturabilirMi => true;
 
+    /// <summary>
+    /// "Yetki çerçevesinde" kurum tanımlama: sadece Sistem Yöneticisi yeni hastane/klinik ve şube ekleyebilir.
+    /// Kurum Yöneticisi mevcut şubelerin saatlerini, bölümlerini, hizmetlerini ve çalışanlarını yönetir.
+    /// </summary>
+    public override bool KurumTanimlayabilirMi => Yetki == YoneticiYetkisi.SistemYoneticisi;
+
     public override string BilgiOzeti()
     {
         string yetkiAdi = Yetki == YoneticiYetkisi.SistemYoneticisi ? "Sistem Yöneticisi" : "Kurum Yöneticisi";

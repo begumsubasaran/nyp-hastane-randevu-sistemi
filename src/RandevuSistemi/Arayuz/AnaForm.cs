@@ -142,7 +142,7 @@ public class AnaForm : Form
         switch (_aktifKullanici)
         {
             case Yonetici:
-                MenuEkle("Kurumlar", () => new KurumlarEkrani(_veri.Kurumlar));
+                MenuEkle("Kurumlar", () => new KurumlarEkrani(_veri, _aktifKullanici));
                 MenuEkle("Hizmetler", () => new HizmetlerEkrani(_veri));
                 MenuEkle("Çalışanlar", () => new CalisanlarEkrani(_veri));
                 MenuEkle("Kullanıcılar", () => new KullanicilarEkrani(_veri.Kullanicilar));

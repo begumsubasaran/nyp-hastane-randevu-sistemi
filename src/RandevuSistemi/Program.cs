@@ -30,7 +30,7 @@ internal static class Program
         while (true)
         {
             Kullanici? kullanici;
-            using (var giris = new GirisFormu(veri))
+            using (var giris = new GirisFormu(veri, depo))
             {
                 if (giris.ShowDialog() != DialogResult.OK)
                     break;

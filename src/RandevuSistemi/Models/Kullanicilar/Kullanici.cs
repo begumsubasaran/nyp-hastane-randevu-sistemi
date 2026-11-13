@@ -186,6 +186,12 @@ public abstract class Kullanici
     /// <summary>Bu kullanıcı yeni randevu oluşturabilir mi? (Varsayılan: hayır; Hasta ve Yönetici: evet)</summary>
     public virtual bool RandevuOlusturabilirMi => false;
 
+    /// <summary>
+    /// Bu kullanıcı yeni hastane/klinik veya şube tanımlayabilir mi?
+    /// Varsayılan: hayır. Sadece Sistem Yöneticisi (Yonetici sınıfında override edilir).
+    /// </summary>
+    public virtual bool KurumTanimlayabilirMi => false;
+
     public override string ToString() => BilgiOzeti();
 
     // ---- Alt sınıfların da kullanabileceği yardımcı metot ----
