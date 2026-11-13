@@ -48,6 +48,9 @@ public class Yonetici : Kullanici
     /// </summary>
     public override bool KurumTanimlayabilirMi => Yetki == YoneticiYetkisi.SistemYoneticisi;
 
+    /// <summary>Her yönetici (sistem veya kurum) şube saatlerini ve bölümlerini düzenleyebilir.</summary>
+    public override bool KurumBilgileriniDuzenleyebilirMi => true;
+
     public override string BilgiOzeti()
     {
         string yetkiAdi = Yetki == YoneticiYetkisi.SistemYoneticisi ? "Sistem Yöneticisi" : "Kurum Yöneticisi";

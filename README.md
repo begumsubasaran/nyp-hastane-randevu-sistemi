@@ -39,7 +39,7 @@ Program giriş ekranıyla açılır. Örnek hesaplar (hepsinin şifresi `sifre12
 
 | Kullanıcı adı | Rol | Görebildiği ekranlar |
 |---|---|---|
-| `ayse`, `can` | Hasta | Randevularım (kendi randevuları, yeni randevu alma, iptal) |
+| `ayse`, `can` | Hasta | Randevularım (kendi randevuları, yeni randevu alma, iptal), Kurumlar ve Hizmetler (çalışma saatleri, bölümler, hizmet süre/ücretleri — salt okunur) |
 | `drmehmet`, `drelif`, `drhakan` | Doktor | Randevularım (kendisine alınanlar, onay/ret/tamamlama), Çalışma Bilgilerim (uygunluk saatleri) |
 | `zeynep`, `burak` | Sağlık Personeli | Doktor ile aynı |
 | `admin` | Yönetici | Tüm ekranlar ve tüm randevular |

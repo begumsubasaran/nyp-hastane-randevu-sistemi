@@ -12,7 +12,8 @@ namespace RandevuSistemi.Arayuz;
 /// Bu form, tasarımcı (Designer) kullanılmadan tamamen kodla oluşturulmuştur.
 ///
 /// Menüde hangi ekranların görüneceği giriş yapan kullanıcının rolüne göre belirlenir:
-/// Hasta → Randevularım; Doktor/Personel → Randevularım + Çalışma Bilgilerim; Yönetici → tüm ekranlar.
+/// Hasta → Randevularım + Kurumlar ve Hizmetler (salt okunur); Doktor/Personel → Randevularım + Çalışma Bilgilerim;
+/// Yönetici → tüm ekranlar.
 ///
 /// Veriler otomatik kaydedilir: ekran değiştirilirken ve program kapatılırken.
 /// Form, kaydetme işini sadece IVeriDeposu arayüzü üzerinden yapar; JSON kullanıldığını bilmez.
@@ -153,7 +154,10 @@ public class AnaForm : Form
                 MenuEkle("Çalışma Bilgilerim", () => new CalisanlarEkrani(_veri, calisan));
                 break;
 
-            // Hasta: sadece "Randevularım"
+            case Hasta:
+                // Hasta kurumları sadece görüntüler: çalışma saatleri, bölümler, hizmetler (süre, ücret).
+                MenuEkle("Kurumlar ve Hizmetler", () => new KurumlarEkrani(_veri, _aktifKullanici));
+                break;
         }
 
         // Açılışta ilk ekranı göster

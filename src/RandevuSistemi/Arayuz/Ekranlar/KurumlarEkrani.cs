@@ -10,6 +10,8 @@ namespace RandevuSistemi.Arayuz.Ekranlar;
 /// Kurumları ve şubelerini ağaç yapısında gösterir ve yönetir.
 /// - Sistem Yöneticisi: yeni hastane/klinik ve şube ekleyebilir ("yetki çerçevesinde").
 /// - Yöneticiler: seçilen şubenin çalışma saatlerini ve bölümlerini düzenleyebilir.
+/// - Hasta: SADECE GÖRÜNTÜLER (çalışma saatleri, bölümler, hizmetlerin süre ve ücretleri);
+///   düzenleme araçları gizlenir.
 /// Hizmetler burada sadece listelenir; eklemek/silmek için Hizmetler ekranı kullanılır.
 /// </summary>
 public class KurumlarEkrani : UserControl
@@ -66,7 +68,9 @@ public class KurumlarEkrani : UserControl
         {
             solButonlar.Controls.Add(new Label
             {
-                Text = "Yeni kurum/şube sadece Sistem Yöneticisi tarafından eklenebilir.",
+                Text = _aktifKullanici.KurumBilgileriniDuzenleyebilirMi
+                    ? "Yeni kurum/şube sadece Sistem Yöneticisi tarafından eklenebilir."
+                    : "Bir şube seçerek çalışma saatlerini, bölümlerini ve hizmetlerini görebilirsiniz.",
                 AutoSize = true,
                 ForeColor = Tema.SolukYazi,
                 Margin = new Padding(0, 10, 0, 0)
@@ -153,9 +157,20 @@ public class KurumlarEkrani : UserControl
         detay.Controls.Add(Tema.BolumBasligi("Bölümler"), 0, 5);
         detay.Controls.Add(_bolumListesi, 0, 6);
         detay.Controls.Add(_bolumAraclari, 0, 7);
-        detay.Controls.Add(Tema.BolumBasligi("Hizmetler  (Hizmetler ekranından yönetilir)"), 0, 8);
+        detay.Controls.Add(Tema.BolumBasligi(_aktifKullanici.KurumBilgileriniDuzenleyebilirMi
+            ? "Hizmetler  (Hizmetler ekranından yönetilir)"
+            : "Hizmetler  (süre ve ücret)"), 0, 8);
         detay.Controls.Add(_hizmetListesi, 0, 9);
         yerlesim.Controls.Add(KartIcineAl(detay), 1, 0);
+
+        // Düzenleme yetkisi yoksa (hasta) saat ve bölüm araç satırları gizlenir: ekran salt okunur olur.
+        if (!_aktifKullanici.KurumBilgileriniDuzenleyebilirMi)
+        {
+            _saatAraclari.Visible = false;
+            _bolumAraclari.Visible = false;
+            detay.RowStyles[4].Height = 0;
+            detay.RowStyles[7].Height = 0;
+        }
 
         Controls.Add(yerlesim);
 

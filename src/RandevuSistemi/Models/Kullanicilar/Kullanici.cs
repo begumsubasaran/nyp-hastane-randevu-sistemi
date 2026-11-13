@@ -192,6 +192,12 @@ public abstract class Kullanici
     /// </summary>
     public virtual bool KurumTanimlayabilirMi => false;
 
+    /// <summary>
+    /// Bu kullanıcı şubelerin çalışma saatlerini ve bölümlerini düzenleyebilir mi?
+    /// Varsayılan: hayır (hasta ve çalışanlar sadece görüntüler). Yonetici'de override edilir.
+    /// </summary>
+    public virtual bool KurumBilgileriniDuzenleyebilirMi => false;
+
     public override string ToString() => BilgiOzeti();
 
     // ---- Alt sınıfların da kullanabileceği yardımcı metot ----
