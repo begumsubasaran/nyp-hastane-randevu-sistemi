@@ -1,5 +1,8 @@
 using RandevuSistemi.Arayuz.Formlar;
 using RandevuSistemi.Models.Hizmetler;
+using RandevuSistemi.Models.Kullanicilar;
+using RandevuSistemi.Models.Randevular;
+using RandevuSistemi.Servisler;
 using RandevuSistemi.Veri;
 
 namespace RandevuSistemi.Arayuz.Ekranlar;
@@ -8,21 +11,25 @@ namespace RandevuSistemi.Arayuz.Ekranlar;
 /// Şubelerin sağlık hizmetlerini (süre ve ücretleriyle) listeler.
 /// "Tüm şubeler" seçilirse bütün şubelerin hizmetleri, hangi şubeye ait oldukları ile birlikte görünür.
 /// Yeni hizmet eklenebilir veya seçili hizmet silinebilir.
+/// Hizmet silinince o hizmete alınmış ileri tarihli randevular (onay alınarak) iptal edilir.
 /// </summary>
 public class HizmetlerEkrani : UserControl
 {
     private const string TumSubeler = "Tüm şubeler";
 
     private readonly UygulamaVerisi _veri;
+    private readonly Kullanici _islemYapan;
     private readonly ComboBox _subeKutusu;
     private readonly DataGridView _tablo;
 
     /// <summary>Tablodaki her satırın hangi şubenin hangi hizmeti olduğunu tutar.</summary>
     private sealed record HizmetSatiri(SubeSecenegi Secenek, SaglikHizmeti Hizmet);
 
-    public HizmetlerEkrani(UygulamaVerisi veri)
+    /// <param name="islemYapan">Hizmet silinince iptal edilen randevularda "son işlemi yapan" olarak kaydedilir.</param>
+    public HizmetlerEkrani(UygulamaVerisi veri, Kullanici islemYapan)
     {
         _veri = veri;
+        _islemYapan = islemYapan;
         BackColor = Tema.Arkaplan;
 
         var yerlesim = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2 };
@@ -131,17 +138,38 @@ public class HizmetlerEkrani : UserControl
             return;
         }
 
-        DialogResult cevap = MessageBox.Show(
-            $"'{satir.Secenek}' şubesindeki '{satir.Hizmet.Ad}' hizmeti silinsin mi?\n" +
-            "Bu hizmeti sunan çalışanların listesinden de çıkarılacak.",
-            "Hizmeti Sil", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+        var servis = new RandevuServisi(_veri);
+
+        // Silmeden önce: bu hizmete alınmış ileri tarihli randevuları bul ve kullanıcıya göster.
+        List<Randevu> iptalEdilecekler = servis.HizmetinGelecekRandevulari(satir.Hizmet);
+        string soru = $"'{satir.Secenek}' şubesindeki '{satir.Hizmet.Ad}' hizmeti silinsin mi?\n" +
+                      "Bu hizmeti sunan çalışanların listesinden de çıkarılacak.";
+        if (iptalEdilecekler.Count > 0)
+            soru += $"\n\nBu hizmete alınmış aşağıdaki {iptalEdilecekler.Count} ileri tarihli randevu İPTAL EDİLECEK:\n\n" +
+                    Tema.RandevuListesiMetni(iptalEdilecekler) +
+                    "\n\nGeçmiş randevular olduğu gibi korunur.";
+
+        DialogResult cevap = MessageBox.Show(soru, "Hizmeti Sil", MessageBoxButtons.YesNo,
+            iptalEdilecekler.Count > 0 ? MessageBoxIcon.Warning : MessageBoxIcon.Question);
         if (cevap != DialogResult.Yes)
             return;
 
-        satir.Secenek.Sube.HizmetKaldir(satir.Hizmet.Id);
-        foreach (var calisan in _veri.Calisanlar)
-            calisan.HizmetCikar(satir.Hizmet.Id);
+        List<Randevu> iptalEdilenler;
+        try
+        {
+            iptalEdilenler = servis.HizmetiSil(satir.Secenek.Sube, satir.Hizmet, _islemYapan);
+        }
+        catch (Exception hata) when (hata is UnauthorizedAccessException or InvalidOperationException)
+        {
+            Tema.HataGoster(hata.Message);
+            return;
+        }
 
         TabloyuDoldur();
+        Tema.BilgiGoster($"'{satir.Hizmet.Ad}' hizmeti silindi." +
+            (iptalEdilenler.Count == 0
+                ? ""
+                : $"\n\n{iptalEdilenler.Count} ileri tarihli randevu iptal edildi:\n" +
+                  Tema.RandevuListesiMetni(iptalEdilenler)));
     }
 }

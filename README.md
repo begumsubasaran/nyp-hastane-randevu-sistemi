@@ -20,7 +20,7 @@ Tek bir kliniği ve çok şubeli sağlık kuruluşlarını destekler. Veriler JS
 |---|---|
 | Kapsülleme (Encapsulation) | Alanlar `private`, erişim `property` ve doğrulamalı metotlarla |
 | Kalıtım (Inheritance) | `Kullanici` soyut sınıfından `Hasta`, `Doktor`, `SaglikPersoneli`, `Yonetici` türer |
-| Çok biçimlilik (Polymorphism) | Her rol kendi menüsünü ve yetkilerini `override` ile tanımlar |
+| Çok biçimlilik (Polymorphism) | Her rol kendi menüsünü ve yetkilerini `override` ile tanımlar (ör. `SaglikPersoneli.RandevuKabulEderMi`: sadece fizyoterapist randevu kabul eder) |
 | Soyutlama (Abstraction) | `abstract` sınıflar (`Kullanici`, `Calisan`) ve `IVeriDeposu` arayüzü |
 
 ## Çalıştırma
@@ -41,7 +41,8 @@ Program giriş ekranıyla açılır. Örnek hesaplar (hepsinin şifresi `sifre12
 |---|---|---|
 | `ayse`, `can` | Hasta | Randevularım (kendi randevuları, bölüm ve doktor seçerek randevu alma, iptal), Kurumlar ve Hizmetler (çalışma saatleri, bölümler, hizmet süre/ücretleri — salt okunur) |
 | `drmehmet`, `drelif`, `drhakan` | Doktor | Randevularım (kendisine alınanlar, onay/ret/tamamlama), Çalışma Bilgilerim (uygunluk saatleri) |
-| `zeynep`, `burak` | Sağlık Personeli | Doktor ile aynı |
+| `burak` | Sağlık Personeli (Fizyoterapist) | Doktor ile aynı (hasta ekranında "Fiziksel Tıp ve Rehabilitasyon" bölümünde) |
+| `zeynep` | Sağlık Personeli (Hemşire) | Sadece Ana Sayfa ve Çalışma Bilgilerim (hemşireye randevu alınamaz, "Randevularım" yok) |
 | `admin` | Yönetici | Tüm ekranlar ve tüm randevular |
 
 Tüm rollerde menünün ilk öğesi role göre içeriği değişen **Ana Sayfa**'dır. "Çıkış Yap" ile giriş ekranına dönülür.
@@ -182,15 +183,21 @@ Randevu
 | Hasta | Şube → **Bölüm** → Doktor → İşlem → Tarih → Saat | Sadece seçilen doktorun sunduğu hizmetler listelenir; **muayene** varsa otomatik seçili gelir (laboratuvar doktorunda Kan Tahlili gibi tetkikler) |
 | Yönetici (hasta adına) | Hasta → Şube → İşlem (hizmet) → Doktor/Personel → Tarih → Saat | Listeden seçilen işlem (EKG, MR, kan tahlili gibi tetkikler dahil) |
 
-Hastaya yalnızca randevu veren en az bir doktoru olan bölümler listelenir. Bir doktorun bölümü, uzmanlık
-alanının şubedeki bölüm adıyla eşleşmesinden anlaşılır (`RandevuServisi.BolumDoktorlari`, `SunduguHizmetler`).
+Hastaya yalnızca randevu veren en az bir çalışanı olan bölümler listelenir. Çalışanın bölümü `Calisan.BolumAdi`
+özelliğinden gelir: doktorda uzmanlık alanı ("Kardiyoloji"), fizyoterapistte **"Fiziksel Tıp ve Rehabilitasyon"** (bu bölüm şubede tanımlı olmalıdır)
+(`RandevuServisi.RandevuVerilenBolumler`, `BolumCalisanlari`, `SunduguHizmetler`).
+
+**Kime randevu alınabilir?** Doktorlara ve sağlık personelinden **yalnızca fizyoterapistlere**. Hemşire, ebe,
+laborant ve radyoloji teknisyenine randevu alınamaz; bu kullanıcılar giriş yaptığında menüde "Randevularım" görünmez.
+Kural, `Calisan` sınıfındaki sanal `RandevuKabulEderMi` özelliğinin `SaglikPersoneli` sınıfında override edilmesiyle
+tanımlanır (`Gorev == Fizyoterapist`).
 
 ## Randevu kuralları (`RandevuServisi`)
 
 Randevu oluşturulurken sırasıyla kontrol edilir; biri sağlanmazsa `RandevuKuraliException` fırlatılır:
 
 1. Geçmiş bir zamana randevu alınamaz
-2. Çalışan aktif olmalı, bir şubeye atanmış olmalı ve seçilen hizmeti sunmalı
+2. Çalışan aktif olmalı, randevu kabul eden bir görevde olmalı (doktor veya fizyoterapist), bir şubeye atanmış olmalı ve seçilen hizmeti sunmalı
 3. Randevu şubenin çalışma saatleri içinde olmalı
 4. Randevu çalışanın **uygunluk zaman dilimlerinden** birinin içinde olmalı
 5. **Çakışma:** çalışanın aynı saatte başka randevusu olmamalı
@@ -207,6 +214,11 @@ saatlerinin daraltılması), ileri tarihli randevular yeniden kontrol edilir:
 - Yeni uygunluk saatlerinin **dışında kalan** randevular otomatik iptal edilir (`RandevuServisi.UygunlukDisiRandevulariIptalEt`).
 - Yeni saatlere **uyan** randevular korunur.
 - Değişiklik yapılmadan önce hangi randevuların iptal olacağı listelenir ve onay istenir (`UygunlukDisiKalanlar`).
+
+Bir **hizmet silindiğinde** (`RandevuServisi.HizmetiSil`), hizmet şubeden ve onu sunan çalışanlardan kaldırılır;
+silindiği andan sonraki o hizmete alınmış onay bekleyen ve onaylanmış randevular sebebi yazılarak **iptal edilir**.
+Silmeden önce iptal edilecek randevular listelenip onay istenir (`HizmetinGelecekRandevulari`). Geçmiş randevular
+korunur; randevu hizmet adını, süresini ve ücretini kendi içinde sakladığı için kayıt bozulmaz.
 
 ## Onay mekanizması
 

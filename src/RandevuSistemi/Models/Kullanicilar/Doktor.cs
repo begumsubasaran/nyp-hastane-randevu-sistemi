@@ -36,6 +36,9 @@ public class Doktor : Calisan
 
     public DoktorUnvani AkademikUnvan { get; set; }
 
+    /// <summary>Doktorun bölümü uzmanlık alanıdır (hasta "Kardiyoloji" seçince kardiyologlar listelenir).</summary>
+    public override string? BolumAdi => UzmanlikAlani;
+
     public override string Unvan
     {
         get

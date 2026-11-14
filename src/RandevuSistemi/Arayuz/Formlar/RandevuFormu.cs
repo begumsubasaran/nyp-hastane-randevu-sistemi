@@ -119,7 +119,7 @@ public class RandevuFormu : Form
             // Hasta: Bölüm → Doktor → İşlem (doktorun hizmetleri)
             tablo.Controls.Add(Etiket("Bölüm"), 0, satir);
             tablo.Controls.Add(_bolumKutusu, 1, satir++);
-            tablo.Controls.Add(Etiket("Doktor"), 0, satir);
+            tablo.Controls.Add(Etiket("Doktor / Uzman"), 0, satir);
             tablo.Controls.Add(_calisanKutusu, 1, satir++);
             tablo.Controls.Add(Etiket("İşlem"), 0, satir);
             tablo.Controls.Add(_hizmetKutusu, 1, satir++);
@@ -229,15 +229,14 @@ public class RandevuFormu : Form
 
     /// <summary>
     /// Hasta için: seçilen şubenin bölümleri (Kardiyoloji, Dahiliye...).
-    /// Sadece randevu veren en az bir doktoru olan bölümler listelenir
-    /// (ör. doktoru olmayan Laboratuvar bölümü hastaya gösterilmez).
+    /// Sadece randevu veren en az bir çalışanı olan bölümler listelenir (RandevuServisi.RandevuVerilenBolumler).
     /// </summary>
     private void BolumleriDoldur()
     {
         _bolumKutusu.Items.Clear();
         if (SeciliSube is { } sube)
         {
-            foreach (Bolum bolum in sube.Bolumler.Where(b => _servis.BolumDoktorlari(sube, b).Count > 0))
+            foreach (Bolum bolum in _servis.RandevuVerilenBolumler(sube))
                 _bolumKutusu.Items.Add(bolum);
         }
 
@@ -258,14 +257,14 @@ public class RandevuFormu : Form
         {
             if (SeciliSube is { } sube && SeciliBolum is { } bolum)
             {
-                foreach (Doktor doktor in _servis.BolumDoktorlari(sube, bolum))
-                    _calisanKutusu.Items.Add(new CalisanSecenegi(doktor));
+                foreach (Calisan calisan in _servis.BolumCalisanlari(sube, bolum))
+                    _calisanKutusu.Items.Add(new CalisanSecenegi(calisan));
             }
         }
         else if (SeciliSube is { } sube && SeciliHizmet is { } hizmet)
         {
             IEnumerable<Calisan> uygunlar = _veri.Calisanlar.Where(c =>
-                c.AktifMi && c.SubeId == sube.Id && c.HizmetSunuyorMu(hizmet.Id));
+                c.AktifMi && c.RandevuKabulEderMi && c.SubeId == sube.Id && c.HizmetSunuyorMu(hizmet.Id));
 
             foreach (Calisan calisan in uygunlar)
                 _calisanKutusu.Items.Add(new CalisanSecenegi(calisan));
@@ -289,7 +288,7 @@ public class RandevuFormu : Form
             if (_bolumIle)
                 _bilgi.Text = SeciliBolum is null
                     ? "Bu şubede şu anda randevu verilen bir bölüm yok. Başka bir şube seçin."
-                    : $"{SeciliBolum.Ad} bölümünde şu anda randevu veren doktor bulunmuyor.";
+                    : $"{SeciliBolum.Ad} bölümünde şu anda randevu veren kimse bulunmuyor.";
             else
                 _bilgi.Text = SeciliHizmet is null
                     ? "Bu şubede tanımlı hizmet yok."

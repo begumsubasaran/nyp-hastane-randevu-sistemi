@@ -15,7 +15,8 @@ namespace RandevuSistemi.Servisler;
 ///
 /// Kontrol edilen kurallar:
 ///  1) Geçmiş bir zamana randevu alınamaz
-///  2) Çalışan aktif olmalı, bir şubeye atanmış olmalı ve bu hizmeti sunmalı
+///  2) Çalışan aktif olmalı, randevu kabul eden bir görevde olmalı (doktor / fizyoterapist),
+///     bir şubeye atanmış olmalı ve bu hizmeti sunmalı
 ///  3) Randevu şubenin çalışma saatleri içinde olmalı
 ///  4) Randevu çalışanın UYGUNLUK ZAMAN DİLİMLERİNDEN birinin içinde olmalı
 ///  5) ÇAKIŞMA: çalışanın aynı saatte başka randevusu olmamalı
@@ -60,6 +61,8 @@ public class RandevuServisi
         // 2) Çalışan ve hizmet
         if (!calisan.AktifMi)
             return $"{calisan.TamAd} şu anda aktif değil.";
+        if (!calisan.RandevuKabulEderMi)
+            return $"{calisan.TamAd} ({calisan.Unvan}) görevinde hastalara randevu verilmez.";
         if (!calisan.HizmetSunuyorMu(hizmet.Id))
             return $"{calisan.TamAd}, \"{hizmet.Ad}\" hizmetini sunmuyor.";
 
@@ -126,18 +129,66 @@ public class RandevuServisi
     }
 
     /// <summary>
-    /// Seçilen şubenin seçilen bölümünde randevu verebilen doktorlar:
-    /// aktif, o şubede çalışan, uzmanlığı (bölümü) bu bölüm olan ve en az bir hizmet sunan doktorlar.
+    /// Seçilen şubenin seçilen bölümünde randevu verebilen çalışanlar: aktif, randevu kabul eden,
+    /// o şubede çalışan, bölümü (Calisan.BolumAdi) bu bölüm olan ve en az bir hizmet sunanlar.
+    /// Örnek: "Kardiyoloji" → kardiyologlar; "Fiziksel Tıp ve Rehabilitasyon" → FTR doktorları + fizyoterapistler.
     /// </summary>
-    public List<Doktor> BolumDoktorlari(Sube sube, Bolum bolum) =>
+    public List<Calisan> BolumCalisanlari(Sube sube, Bolum bolum) =>
         _veri.Calisanlar
-            .OfType<Doktor>()
-            .Where(d => d.AktifMi
-                        && d.SubeId == sube.Id
-                        && string.Equals(d.UzmanlikAlani, bolum.Ad, StringComparison.CurrentCultureIgnoreCase)
-                        && SunduguHizmetler(d).Count > 0)
-            .OrderBy(d => d.TamAd)
+            .Where(c => c.AktifMi
+                        && c.RandevuKabulEderMi
+                        && c.SubeId == sube.Id
+                        && AyniAd(c.BolumAdi, bolum.Ad)
+                        && SunduguHizmetler(c).Count > 0)
+            .OrderBy(c => c.TamAd)
             .ToList();
+
+    /// <summary>
+    /// Hastanın randevu alırken seçebileceği bölümler: şubenin bölümlerinden randevu veren
+    /// en az bir çalışanı olanlar. (Fizyoterapistler "Fiziksel Tıp ve Rehabilitasyon" bölümünde listelenir.)
+    /// </summary>
+    public List<Bolum> RandevuVerilenBolumler(Sube sube) =>
+        sube.Bolumler.Where(b => BolumCalisanlari(sube, b).Count > 0).ToList();
+
+    private static bool AyniAd(string? a, string? b) =>
+        a is not null && b is not null && string.Equals(a.Trim(), b.Trim(), StringComparison.CurrentCultureIgnoreCase);
+
+    /// <summary>
+    /// Verilen hizmete alınmış ileri tarihli, hâlâ geçerli (onay bekleyen veya onaylanmış) randevular.
+    /// Hizmet silinmeden önce kullanıcıya hangi randevuların iptal edileceğini göstermek için kullanılır.
+    /// </summary>
+    public List<Randevu> HizmetinGelecekRandevulari(SaglikHizmeti hizmet) =>
+        _veri.Randevular
+            .Where(r => r.HizmetId == hizmet.Id
+                        && r.Baslangic > DateTime.Now
+                        && r.GecisMumkunMu(RandevuDurumu.IptalEdildi))
+            .OrderBy(r => r.Baslangic)
+            .ToList();
+
+    /// <summary>
+    /// Hizmeti şubeden siler, sunan çalışanların listesinden çıkarır ve bu hizmete alınmış
+    /// ileri tarihli randevuları iptal eder. Geçmiş randevular olduğu gibi kalır
+    /// (randevu, hizmet adını/süresini/ücretini kendi içinde sakladığı için kayıt bozulmaz).
+    /// İptal edilen randevuları döndürür.
+    /// </summary>
+    public List<Randevu> HizmetiSil(Sube sube, SaglikHizmeti hizmet, Kullanici islemYapan)
+    {
+        List<Randevu> iptalEdilecekler = HizmetinGelecekRandevulari(hizmet);
+
+        // Önce yetki kontrolü: yetkisi yoksa hiçbir şey değişmeden hata fırlatılır.
+        if (iptalEdilecekler.Any(r => !islemYapan.RandevuIptalEdebilirMi(r)))
+            throw new UnauthorizedAccessException("Bu hizmete alınmış randevuları iptal etme yetkiniz yok.");
+
+        sube.HizmetKaldir(hizmet.Id);
+        foreach (Calisan calisan in _veri.Calisanlar)
+            calisan.HizmetCikar(hizmet.Id);
+
+        string sebep = $"\"{hizmet.Ad}\" hizmeti {DateTime.Now:dd.MM.yyyy} tarihinde kaldırıldığı için iptal edildi.";
+        foreach (Randevu randevu in iptalEdilecekler)
+            randevu.IptalEt(islemYapan, sebep);
+
+        return iptalEdilecekler;
+    }
 
     /// <summary>
     /// Çalışanın ileri tarihli, hâlâ geçerli (onay bekleyen veya onaylanmış) randevuları.

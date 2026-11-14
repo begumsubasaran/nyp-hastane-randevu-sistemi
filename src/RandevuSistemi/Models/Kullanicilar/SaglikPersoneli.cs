@@ -12,7 +12,8 @@ public enum PersonelGorevi
 
 /// <summary>
 /// Doktor dışındaki sağlık çalışanları (hemşire, laborant vb.).
-/// Örneğin laboratuvar veya radyoloji hizmetlerinde randevu bu kişilere verilebilir.
+/// Bunlardan sadece FİZYOTERAPİSTLERE randevu alınabilir; diğer görevler hastaya randevu vermez.
+/// Bu kural RandevuKabulEderMi özelliği override edilerek tanımlanır (çok biçimlilik).
 /// </summary>
 public class SaglikPersoneli : Calisan
 {
@@ -26,6 +27,18 @@ public class SaglikPersoneli : Calisan
     public override Rol Rol => Rol.SaglikPersoneli;
 
     public PersonelGorevi Gorev { get; set; }
+
+    /// <summary>
+    /// Fizyoterapistlerin çalıştığı bölüm. Hasta bu bölümü seçince bölümün doktorlarıyla birlikte
+    /// fizyoterapistler de listelenir (bölüm, şubenin bölümleri arasında tanımlı olmalıdır).
+    /// </summary>
+    public const string FizyoterapiBolumu = "Fiziksel Tıp ve Rehabilitasyon";
+
+    /// <summary>Sağlık personelinden sadece fizyoterapist randevu kabul eder.</summary>
+    public override bool RandevuKabulEderMi => Gorev == PersonelGorevi.Fizyoterapist;
+
+    /// <summary>Fizyoterapist "Fiziksel Tıp ve Rehabilitasyon" bölümünde listelenir; diğer personel hiçbir bölümde değildir.</summary>
+    public override string? BolumAdi => RandevuKabulEderMi ? FizyoterapiBolumu : null;
 
     public override string Unvan => Gorev switch
     {

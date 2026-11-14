@@ -25,6 +25,7 @@ public static class OrnekVeriler
         merkez.BolumEkle("Dahiliye");
         merkez.BolumEkle("Radyoloji");
         merkez.BolumEkle("Laboratuvar");
+        merkez.BolumEkle("Fiziksel Tıp ve Rehabilitasyon");  // fizyoterapistler bu bölümde
 
         Sube serdivan = hastane.SubeEkle("Serdivan Şube", "Serdivan / Sakarya");
         serdivan.HaftaIciCalismaSaatiBelirle(new TimeOnly(9, 0), new TimeOnly(18, 0));
@@ -35,9 +36,10 @@ public static class OrnekVeriler
         merkez.HizmetEkle("Genel Muayene", HizmetKategorisi.Muayene, 15, 750m);
         SaglikHizmeti kardiyolojiMuayene = merkez.HizmetEkle("Kardiyoloji Muayenesi", HizmetKategorisi.Muayene, 20, 1200m);
         SaglikHizmeti ekg = merkez.HizmetEkle("EKG", HizmetKategorisi.Tetkik, 15, 400m, "Elektrokardiyografi");
-        SaglikHizmeti rontgen = merkez.HizmetEkle("Akciğer Röntgeni", HizmetKategorisi.Goruntuleme, 10, 600m);
-        SaglikHizmeti mr = merkez.HizmetEkle("MR", HizmetKategorisi.Goruntuleme, 30, 3500m, "Manyetik rezonans görüntüleme");
-        SaglikHizmeti kanTahlili = merkez.HizmetEkle("Kan Tahlili", HizmetKategorisi.Laboratuvar, 10, 350m);
+        merkez.HizmetEkle("Akciğer Röntgeni", HizmetKategorisi.Goruntuleme, 10, 600m);
+        merkez.HizmetEkle("MR", HizmetKategorisi.Goruntuleme, 30, 3500m, "Manyetik rezonans görüntüleme");
+        merkez.HizmetEkle("Kan Tahlili", HizmetKategorisi.Laboratuvar, 10, 350m);
+        SaglikHizmeti fizikTedavi = merkez.HizmetEkle("Fizik Tedavi Seansı", HizmetKategorisi.Tedavi, 45, 800m);
 
         SaglikHizmeti serdivanMuayene = serdivan.HizmetEkle("Genel Muayene", HizmetKategorisi.Muayene, 15, 700m);
         serdivan.HizmetEkle("Göz Muayenesi", HizmetKategorisi.Muayene, 20, 900m);
@@ -88,16 +90,14 @@ public static class OrnekVeriler
             hakan.UygunlukEkle(klinikSube, gun, Saat(13), Saat(17));
         }
 
+        // Hemşireye randevu alınamaz: hizmeti ve uygunluk saati yoktur, menüsünde "Randevularım" görünmez.
         var zeynep = new SaglikPersoneli("Zeynep", "Demir", "34567890123", "zeynep", "sifre123", PersonelGorevi.Hemsire);
         zeynep.SubeyeAta(merkez);
-        zeynep.HizmetEkle(kanTahlili);
-        foreach (DayOfWeek gun in new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday })
-            zeynep.UygunlukEkle(merkez, gun, Saat(8), Saat(12));
 
-        var burak = new SaglikPersoneli("Burak", "Şahin", "78901234567", "burak", "sifre123", PersonelGorevi.RadyolojiTeknisyeni);
+        // Sağlık personelinden sadece fizyoterapiste randevu alınabilir (hasta ekranında "Fiziksel Tıp ve Rehabilitasyon" bölümü).
+        var burak = new SaglikPersoneli("Burak", "Şahin", "78901234567", "burak", "sifre123", PersonelGorevi.Fizyoterapist);
         burak.SubeyeAta(merkez);
-        burak.HizmetEkle(rontgen);
-        burak.HizmetEkle(mr);
+        burak.HizmetEkle(fizikTedavi);
         burak.UygunlukEkle(merkez, DayOfWeek.Tuesday, Saat(9), Saat(16));
         burak.UygunlukEkle(merkez, DayOfWeek.Thursday, Saat(9), Saat(16));
         burak.UygunlukEkle(merkez, DayOfWeek.Saturday, Saat(9), Saat(13));
@@ -112,8 +112,8 @@ public static class OrnekVeriler
         veri.Randevular.Add(new Randevu(ayse, mehmet, kardiyolojiMuayene, SonrakiGun(DayOfWeek.Monday, 9, 0)));
         veri.Randevular.Add(new Randevu(can, mehmet, ekg, SonrakiGun(DayOfWeek.Monday, 9, 20)));
         veri.Randevular.Add(new Randevu(ayse, elif, serdivanMuayene, SonrakiGun(DayOfWeek.Tuesday, 10, 0)));
-        veri.Randevular.Add(new Randevu(can, burak, mr, SonrakiGun(DayOfWeek.Tuesday, 11, 0)));
-        veri.Randevular.Add(new Randevu(ayse, zeynep, kanTahlili, SonrakiGun(DayOfWeek.Wednesday, 8, 30)));
+        veri.Randevular.Add(new Randevu(can, burak, fizikTedavi, SonrakiGun(DayOfWeek.Tuesday, 11, 0)));
+        veri.Randevular.Add(new Randevu(ayse, burak, fizikTedavi, SonrakiGun(DayOfWeek.Thursday, 10, 0)));
         veri.Randevular.Add(new Randevu(can, hakan, asi, SonrakiGun(DayOfWeek.Thursday, 14, 0)));
 
         return veri;

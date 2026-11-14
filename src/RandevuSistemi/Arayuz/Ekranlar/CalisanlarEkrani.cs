@@ -465,9 +465,11 @@ public class CalisanlarEkrani : UserControl
 
             _hizmetNotu.Text = sube.Hizmetler.Count == 0
                 ? $"{sube.Ad} için henüz hizmet tanımlanmamış (Hizmetler ekranından ekleyin)."
-                : _sadeceBuCalisan is not null
-                    ? "Sunduğunuz hizmetler yönetici tarafından belirlenir."
-                    : "Hasta, bu çalışandan sadece işaretli hizmetler için randevu alabilir.";
+                : !_seciliCalisan.RandevuKabulEderMi
+                    ? $"{_seciliCalisan.Unvan} görevinde hastalara randevu verilmez (sadece fizyoterapistlere randevu alınabilir)."
+                    : _sadeceBuCalisan is not null
+                        ? "Sunduğunuz hizmetler yönetici tarafından belirlenir."
+                        : "Hasta, bu çalışandan sadece işaretli hizmetler için randevu alabilir.";
         }
 
         _yukleniyor = oncekiDurum;

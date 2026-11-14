@@ -35,6 +35,19 @@ public abstract class Calisan : Kullanici
     /// </summary>
     public abstract string Unvan { get; }
 
+    /// <summary>
+    /// Bu çalışana hastalar randevu alabilir mi? Varsayılan: evet (doktorlar).
+    /// SaglikPersoneli bunu override eder: sadece fizyoterapistler randevu kabul eder,
+    /// hemşire / ebe / laborant / teknisyen etmez (onlarda "Randevularım" menüsü de görünmez).
+    /// </summary>
+    public virtual bool RandevuKabulEderMi => true;
+
+    /// <summary>
+    /// Hastanın randevu alırken seçtiği bölümün adı. Doktorda uzmanlık alanıdır ("Kardiyoloji"),
+    /// fizyoterapistte "Fiziksel Tıp ve Rehabilitasyon"dur. Randevu kabul etmeyen çalışanlarda null.
+    /// </summary>
+    public virtual string? BolumAdi => null;
+
     // ---------------- Şube ----------------
 
     /// <summary>Çalışanın görev yaptığı şube. Henüz atanmadıysa null.</summary>

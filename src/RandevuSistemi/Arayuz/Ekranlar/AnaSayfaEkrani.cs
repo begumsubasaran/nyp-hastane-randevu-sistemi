@@ -31,7 +31,10 @@ public class AnaSayfaEkrani : UserControl
         BackColor = Tema.Arkaplan;
 
         DateTime simdi = DateTime.Now;
-        List<Randevu> gorunur = _veri.Randevular.Where(r => kullanici.RandevuyuGorebilirMi(r)).ToList();
+        // Randevu kabul etmeyen personelin (hemşire, laborant...) randevu listesi yoktur.
+        List<Randevu> gorunur = kullanici is Calisan { RandevuKabulEderMi: false }
+            ? []
+            : _veri.Randevular.Where(r => kullanici.RandevuyuGorebilirMi(r)).ToList();
         List<Randevu> yaklasan = gorunur
             .Where(r => r.Baslangic >= simdi && r.Durum is RandevuDurumu.Beklemede or RandevuDurumu.Onaylandi)
             .OrderBy(r => r.Baslangic)
@@ -97,6 +100,10 @@ public class AnaSayfaEkrani : UserControl
                     : $"Sıradaki randevunuz: {siradaki.Baslangic.ToString("d MMMM dddd, HH:mm", Turkce)}  ·  " +
                       $"{siradaki.HizmetAdi}  ·  {siradaki.CalisanAdi}";
 
+            case Calisan { RandevuKabulEderMi: false } personel:
+                return $"{personel.Unvan} görevinde hastalara randevu verilmez. " +
+                       "Şube ve hizmet bilgilerinizi \"Çalışma Bilgilerim\" ekranından görebilirsiniz.";
+
             case Calisan:
                 int bugun = yaklasan.Count(r => r.Baslangic.Date == DateTime.Today);
                 int bekleyen = yaklasan.Count(r => r.Durum == RandevuDurumu.Beklemede);
@@ -124,6 +131,13 @@ public class AnaSayfaEkrani : UserControl
                     new IstatistikKarti(Tema.Ikonlar.Bekle, bekleyen.ToString(), "Onay bekleyen", turuncu),
                     new IstatistikKarti(Tema.Ikonlar.Onay,
                         gorunur.Count(r => r.Durum == RandevuDurumu.Tamamlandi).ToString(), "Tamamlanan", mavi)
+                ];
+
+            case Calisan { RandevuKabulEderMi: false } personel:
+                return
+                [
+                    new IstatistikKarti(Tema.Ikonlar.Kisi, personel.Unvan, "Görev", Tema.Vurgu),
+                    new IstatistikKarti(Tema.Ikonlar.Kurum, _veri.SubeBul(personel.SubeId)?.Ad ?? "-", "Çalıştığı şube", yesil)
                 ];
 
             case Calisan:
@@ -164,7 +178,9 @@ public class AnaSayfaEkrani : UserControl
         {
             liste.Controls.Add(new Label
             {
-                Text = "Yaklaşan randevu bulunmuyor.",
+                Text = _kullanici is Calisan { RandevuKabulEderMi: false }
+                    ? "Görevinizde hastalara randevu verilmediği için randevu listeniz bulunmuyor."
+                    : "Yaklaşan randevu bulunmuyor.",
                 Dock = DockStyle.Top,
                 Height = 40,
                 ForeColor = Tema.SolukYazi,
@@ -206,6 +222,11 @@ public class AnaSayfaEkrani : UserControl
                     "Randevularınızı görün veya iptal edin", () => _menuyeGit("Randevularım")));
                 kisayollar.Add(new HizliIslemKarti(Tema.Ikonlar.Kurum, "Kurumlar ve Hizmetler",
                     "Çalışma saatleri, bölümler, ücretler", () => _menuyeGit("Kurumlar ve Hizmetler")));
+                break;
+
+            case Calisan { RandevuKabulEderMi: false }:
+                kisayollar.Add(new HizliIslemKarti(Tema.Ikonlar.Saat, "Çalışma Bilgilerim",
+                    "Şube ve hizmet bilgilerinizi görün", () => _menuyeGit("Çalışma Bilgilerim")));
                 break;
 
             case Calisan:

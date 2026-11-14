@@ -170,14 +170,20 @@ public class AnaForm : Form
         // Nesnenin gerçek türüne göre (pattern matching) farklı menü kuruluyor.
         MenuButonu anaSayfaButonu = MenuEkle(Tema.Ikonlar.AnaSayfa, "Ana Sayfa", AnaSayfaOlustur);
 
-        string randevuBasligi = _aktifKullanici is Yonetici ? "Randevular" : "Randevularım";
-        MenuEkle(Tema.Ikonlar.Takvim, randevuBasligi, () => new RandevularEkrani(_veri, _aktifKullanici));
+        // Randevu kabul etmeyen sağlık personelinde (hemşire, laborant...) "Randevularım" gösterilmez;
+        // fizyoterapist ve doktorlarda gösterilir. (Calisan.RandevuKabulEderMi - çok biçimlilik)
+        bool randevuMenusu = _aktifKullanici is not Calisan calisanKullanici || calisanKullanici.RandevuKabulEderMi;
+        if (randevuMenusu)
+        {
+            string randevuBasligi = _aktifKullanici is Yonetici ? "Randevular" : "Randevularım";
+            MenuEkle(Tema.Ikonlar.Takvim, randevuBasligi, () => new RandevularEkrani(_veri, _aktifKullanici));
+        }
 
         switch (_aktifKullanici)
         {
             case Yonetici:
                 MenuEkle(Tema.Ikonlar.Kurum, "Kurumlar", () => new KurumlarEkrani(_veri, _aktifKullanici));
-                MenuEkle(Tema.Ikonlar.Saglik, "Hizmetler", () => new HizmetlerEkrani(_veri));
+                MenuEkle(Tema.Ikonlar.Saglik, "Hizmetler", () => new HizmetlerEkrani(_veri, _aktifKullanici));
                 MenuEkle(Tema.Ikonlar.Kisiler, "Çalışanlar", () => new CalisanlarEkrani(_veri, _aktifKullanici));
                 MenuEkle(Tema.Ikonlar.Kisi, "Kullanıcılar", () => new KullanicilarEkrani(_veri.Kullanicilar));
                 break;
