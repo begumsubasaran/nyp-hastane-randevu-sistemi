@@ -104,6 +104,41 @@ public class RandevuServisi
         _veri.Randevular.FirstOrDefault(r =>
             kosul(r) && r.Durum.SaatiDoldururMu() && r.CakisiyorMu(baslangic, bitis));
 
+    // =====================================================================
+    // Bölüm üzerinden randevu (hastalar için)
+    // =====================================================================
+
+    /// <summary>
+    /// Çalışanın, çalıştığı şubede sunduğu hizmetler. Muayene kategorisindekiler başta gelir
+    /// (hasta randevu alırken muayene varsa otomatik seçili olsun diye).
+    /// Örnek: Kardiyolog → [Kardiyoloji Muayenesi, EKG]; laboratuvar doktoru → [Kan Tahlili, İdrar Tahlili].
+    /// </summary>
+    public List<SaglikHizmeti> SunduguHizmetler(Calisan calisan)
+    {
+        Sube? sube = _veri.SubeBul(calisan.SubeId);
+        if (sube is null)
+            return [];
+
+        return sube.Hizmetler
+            .Where(h => calisan.HizmetSunuyorMu(h.Id))
+            .OrderBy(h => h.Kategori == HizmetKategorisi.Muayene ? 0 : 1)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Seçilen şubenin seçilen bölümünde randevu verebilen doktorlar:
+    /// aktif, o şubede çalışan, uzmanlığı (bölümü) bu bölüm olan ve en az bir hizmet sunan doktorlar.
+    /// </summary>
+    public List<Doktor> BolumDoktorlari(Sube sube, Bolum bolum) =>
+        _veri.Calisanlar
+            .OfType<Doktor>()
+            .Where(d => d.AktifMi
+                        && d.SubeId == sube.Id
+                        && string.Equals(d.UzmanlikAlani, bolum.Ad, StringComparison.CurrentCultureIgnoreCase)
+                        && SunduguHizmetler(d).Count > 0)
+            .OrderBy(d => d.TamAd)
+            .ToList();
+
     /// <summary>
     /// Çalışanın ileri tarihli, hâlâ geçerli (onay bekleyen veya onaylanmış) randevuları.
     /// Pasife alma onayında kaç randevunun iptal edileceğini göstermek için de kullanılır.

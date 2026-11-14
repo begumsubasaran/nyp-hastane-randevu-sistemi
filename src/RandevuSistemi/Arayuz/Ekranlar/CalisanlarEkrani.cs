@@ -90,7 +90,7 @@ public class CalisanlarEkrani : UserControl
         solTaraf.Controls.Add(solButonlar, 0, 0);
 
         _tablo.Margin = new Padding(0);
-        solTaraf.Controls.Add(_tablo, 0, 1);
+        solTaraf.Controls.Add(Tema.KartaKoy(_tablo), 0, 1);
         yerlesim.Controls.Add(solTaraf, 0, 0);
 
         // ================= Sağ: seçili çalışanın ayrıntıları =================
@@ -199,7 +199,7 @@ public class CalisanlarEkrani : UserControl
         detay.Controls.Add(Tema.BolumBasligi("Çalıştığı şube"), 0, 2);
         detay.Controls.Add(_subeKutusu, 0, 3);
         detay.Controls.Add(sekmeler, 0, 4);
-        yerlesim.Controls.Add(detay, 1, 0);
+        yerlesim.Controls.Add(Tema.KartaKoy(detay, 6), 1, 0);
 
         Controls.Add(yerlesim);
 

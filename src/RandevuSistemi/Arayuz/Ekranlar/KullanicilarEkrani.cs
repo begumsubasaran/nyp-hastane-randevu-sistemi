@@ -58,7 +58,7 @@ public class KullanicilarEkrani : UserControl
         _tablo.Columns["adSoyad"]!.FillWeight = 22;
         _tablo.Columns["kullaniciAdi"]!.FillWeight = 18;
         _tablo.Columns["ozet"]!.FillWeight = 42;
-        yerlesim.Controls.Add(_tablo, 0, 1);
+        yerlesim.Controls.Add(Tema.KartaKoy(_tablo), 0, 1);
 
         Controls.Add(yerlesim);
 

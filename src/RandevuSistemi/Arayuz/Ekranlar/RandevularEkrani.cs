@@ -94,7 +94,8 @@ public class RandevularEkrani : UserControl
         _tablo.Columns["ucret"]!.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
         _tablo.Columns["durum"]!.DefaultCellStyle.Font = Tema.Kalin;
         _tablo.SelectionChanged += (_, _) => ButonlariGuncelle();
-        yerlesim.Controls.Add(_tablo, 0, 1);
+        _tablo.CellPainting += DurumHucresiniCiz;  // durum sütunu renkli "hap" olarak çizilir
+        yerlesim.Controls.Add(Tema.KartaKoy(_tablo), 0, 1);
 
         // ---- Alt çubuk: onay mekanizması butonları ----
         var altCubuk = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false, Padding = new Padding(0, 12, 0, 0) };
@@ -176,6 +177,24 @@ public class RandevularEkrani : UserControl
 
         _sayac.Text = $"{_tablo.Rows.Count} randevu";
         ButonlariGuncelle();
+    }
+
+    /// <summary>
+    /// "Durum" hücresini düz yazı yerine renkli bir etiket (hap) olarak çizer:
+    /// Beklemede → turuncu, Onaylandı → yeşil, Reddedildi → kırmızı...
+    /// Hücrenin zeminini (seçiliyse açık turkuaz) tablo çizer, hapı biz ekleriz.
+    /// </summary>
+    private void DurumHucresiniCiz(object? sender, DataGridViewCellPaintingEventArgs e)
+    {
+        if (e.RowIndex < 0 || e.ColumnIndex != _tablo.Columns["durum"]!.Index || e.Graphics is null)
+            return;
+        if (_tablo.Rows[e.RowIndex].Tag is not Randevu randevu)
+            return;
+
+        e.PaintBackground(e.CellBounds, (e.State & DataGridViewElementStates.Selected) != 0);
+        var alan = new Rectangle(e.CellBounds.X + 8, e.CellBounds.Y, e.CellBounds.Width - 10, e.CellBounds.Height);
+        Tema.DurumHapiCiz(e.Graphics, alan, randevu.Durum.GorunenAd(), Tema.DurumRengi(randevu.Durum));
+        e.Handled = true;
     }
 
     /// <summary>Tablo yenilendikten sonra aynı randevuyu tekrar seçili yapar.</summary>

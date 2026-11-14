@@ -39,12 +39,12 @@ Program giriş ekranıyla açılır. Örnek hesaplar (hepsinin şifresi `sifre12
 
 | Kullanıcı adı | Rol | Görebildiği ekranlar |
 |---|---|---|
-| `ayse`, `can` | Hasta | Randevularım (kendi randevuları, yeni randevu alma, iptal), Kurumlar ve Hizmetler (çalışma saatleri, bölümler, hizmet süre/ücretleri — salt okunur) |
+| `ayse`, `can` | Hasta | Randevularım (kendi randevuları, bölüm ve doktor seçerek randevu alma, iptal), Kurumlar ve Hizmetler (çalışma saatleri, bölümler, hizmet süre/ücretleri — salt okunur) |
 | `drmehmet`, `drelif`, `drhakan` | Doktor | Randevularım (kendisine alınanlar, onay/ret/tamamlama), Çalışma Bilgilerim (uygunluk saatleri) |
 | `zeynep`, `burak` | Sağlık Personeli | Doktor ile aynı |
 | `admin` | Yönetici | Tüm ekranlar ve tüm randevular |
 
-"Çıkış Yap" ile giriş ekranına dönülür.
+Tüm rollerde menünün ilk öğesi role göre içeriği değişen **Ana Sayfa**'dır. "Çıkış Yap" ile giriş ekranına dönülür.
 
 ## Ekleme pencereleri (arayüzde kalıtım)
 
@@ -57,6 +57,34 @@ Form (.NET)
         ├── HastaKayitFormu          → + doğum tarihi (giriş ekranından "kayıt ol")
         └── CalisanFormu             → + tür, uzmanlık/unvan veya görev, şube (yönetici)
 ```
+
+## Arayüz tasarımı ve özel kontroller
+
+Arayüz; açık gri zemin, beyaz yuvarlak köşeli kartlar, turkuaz vurgu rengi ve simgeli bir yan menüden
+oluşan sade bir sağlık uygulaması görünümündedir (e-Nabız gibi uygulamalardan esinlenilmiştir; logo veya
+marka kullanılmamıştır). Girişten sonra **Ana Sayfa** açılır: karşılama şeridi, role göre özet kartları
+(yaklaşan / onay bekleyen randevu sayısı vb.), yaklaşan randevular listesi ve hızlı işlem kısayolları.
+
+Görünüm, .NET'in hazır kontrollerinden **türeyen** ve çizimi `OnPaint` / `OnPaintBackground` metotlarını
+**override** ederek kendisi yapan sınıflarla elde edilmiştir (kalıtım + çok biçimlilik):
+
+```
+Panel (.NET)
+├── KartPanel              → beyaz, yuvarlak köşeli, ince çerçeveli kart
+│   ├── IstatistikKarti    → simge + büyük sayı + açıklama ("3 Onay bekleyen")
+│   └── HizliIslemKarti    → tıklanabilir kısayol ("Randevu Al"), üzerine gelince kenarı renklenir
+└── BannerPanel            → turkuaz-mavi geçişli karşılama şeridi
+Button (.NET)
+├── YuvarlakButon          → yuvarlak köşeli işlem butonu (üzerine gelme / pasif durumları)
+└── MenuButonu             → simgeli yan menü öğesi, seçili olanı vurgulanır
+Control (.NET)
+├── BasHarfRozeti          → kullanıcının baş harfleri daire içinde ("AY")
+└── RandevuOzetSatiri      → ana sayfadaki randevu satırı: tarih kutusu + işlem + durum etiketi
+```
+
+Randevu tablosundaki durumlar renkli etiketlerle gösterilir (Beklemede turuncu, Onaylandı yeşil,
+Reddedildi kırmızı, İptal gri, Tamamlandı mavi). Simgeler Windows ile gelen *Segoe MDL2 Assets* yazı
+tipinden alınır; ek bir dosya gerekmez.
 
 ## Veri dosyası
 
@@ -80,8 +108,9 @@ nesne_programlama/
         ├── Program.cs           # Giriş noktası, ana pencereyi açar
         ├── Arayuz/              # Windows Forms arayüzü
         │   ├── AnaForm.cs       # Ana pencere: yan menü + içerik alanı
-        │   ├── Tema.cs          # Renkler, yazı tipleri, ortak görünüm ayarları
-        │   ├── Ekranlar/        # Menüden açılan ekranlar (UserControl)
+        │   ├── Tema.cs          # Renkler, yazı tipleri, simgeler, ortak görünüm ayarları
+        │   ├── Kontroller/      # Kendini çizen özel kontroller (kart, buton, menü öğesi...)
+        │   ├── Ekranlar/        # Menüden açılan ekranlar (UserControl), Ana Sayfa dahil
         │   └── Formlar/         # Pencereler: giriş, randevu, ekleme formları (DialogFormTemeli'nden türeyen)
         ├── Servisler/
         │   ├── RandevuServisi.cs     # Randevu kuralları: uygunluk, çakışma, şube saatleri
@@ -145,6 +174,16 @@ Randevu
 └── Durum: Beklemede → Onaylandi → Tamamlandi
                     ↘ Reddedildi / IptalEdildi
 ```
+
+**Randevu nasıl alınır?**
+
+| Kim | Seçim sırası | Hizmet nereden gelir? |
+|---|---|---|
+| Hasta | Şube → **Bölüm** → Doktor → İşlem → Tarih → Saat | Sadece seçilen doktorun sunduğu hizmetler listelenir; **muayene** varsa otomatik seçili gelir (laboratuvar doktorunda Kan Tahlili gibi tetkikler) |
+| Yönetici (hasta adına) | Hasta → Şube → İşlem (hizmet) → Doktor/Personel → Tarih → Saat | Listeden seçilen işlem (EKG, MR, kan tahlili gibi tetkikler dahil) |
+
+Hastaya yalnızca randevu veren en az bir doktoru olan bölümler listelenir. Bir doktorun bölümü, uzmanlık
+alanının şubedeki bölüm adıyla eşleşmesinden anlaşılır (`RandevuServisi.BolumDoktorlari`, `SunduguHizmetler`).
 
 ## Randevu kuralları (`RandevuServisi`)
 

@@ -47,7 +47,7 @@ public static class OrnekVeriler
         var klinik = new Kurum("Erenler Aile Kliniği", KurumTuru.Klinik);
         Sube klinikSube = klinik.SubeEkle("Erenler", "Erenler / Sakarya");
         klinikSube.HaftaIciCalismaSaatiBelirle(new TimeOnly(9, 0), new TimeOnly(17, 30));
-        klinikSube.BolumEkle("Genel Muayene");
+        klinikSube.BolumEkle("Aile Hekimliği");
 
         SaglikHizmeti klinikMuayene = klinikSube.HizmetEkle("Genel Muayene", HizmetKategorisi.Muayene, 20, 600m);
         SaglikHizmeti asi = klinikSube.HizmetEkle("Aşı Uygulaması", HizmetKategorisi.Tedavi, 10, 200m);

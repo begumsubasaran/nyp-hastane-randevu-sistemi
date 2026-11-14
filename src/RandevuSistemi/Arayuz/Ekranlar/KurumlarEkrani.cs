@@ -88,8 +88,10 @@ public class KurumlarEkrani : UserControl
             ItemHeight = 30,
             HideSelection = false,
             FullRowSelect = true,
-            ShowLines = false
+            ShowLines = false,
+            DrawMode = TreeViewDrawMode.OwnerDrawText  // düğümleri DugumuCiz metodu çizer
         };
+        _agac.DrawNode += DugumuCiz;
         _agac.AfterSelect += (_, e) => SecimiGoster(e.Node?.Tag);
         solTaraf.Controls.Add(KartIcineAl(_agac), 0, 1);
         yerlesim.Controls.Add(solTaraf, 0, 0);
@@ -193,7 +195,7 @@ public class KurumlarEkrani : UserControl
         foreach (Kurum kurum in _veri.Kurumlar)
         {
             // Tag özelliğine nesnenin kendisini koyuyoruz; seçildiğinde geri alacağız.
-            var kurumDugumu = new TreeNode($"{kurum.Ad}  ({kurum.TurAdi})") { Tag = kurum };
+            var kurumDugumu = new TreeNode($"{kurum.Ad}  ({kurum.TurAdi})") { Tag = kurum, NodeFont = KurumDugumuYazisi };
             foreach (Sube sube in kurum.Subeler)
             {
                 var subeDugumu = new TreeNode(sube.Ad) { Tag = sube };
@@ -524,18 +526,35 @@ public class KurumlarEkrani : UserControl
         return buton;
     }
 
-    /// <summary>Kontrolü beyaz arkaplanlı, kenar boşluklu bir "kart" panelin içine koyar.</summary>
-    private static Panel KartIcineAl(Control icerik)
+    /// <summary>Kontrolü köşeleri yuvarlak, beyaz bir "kart" panelin içine koyar.</summary>
+    private static Panel KartIcineAl(Control icerik) => Tema.KartaKoy(icerik, 16);
+
+    private static readonly Font KurumDugumuYazisi = new("Segoe UI Semibold", 11f);
+
+    /// <summary>
+    /// Ağaçtaki düğümleri kendimiz çizeriz: seçili düğüm açık turkuaz zeminli ve solunda
+    /// turkuaz çizgili olur, kurum düğümleri kalın yazılır (TreeView.DrawMode = OwnerDrawText).
+    /// </summary>
+    private void DugumuCiz(object? sender, DrawTreeNodeEventArgs e)
     {
-        var kart = new Panel
+        if (e.Node is null || e.Bounds.IsEmpty)
+            return;
+
+        bool secili = (e.State & TreeNodeStates.Selected) != 0;
+        Font yazi = e.Node.NodeFont ?? _agac.Font;
+        var alan = new Rectangle(e.Bounds.X, e.Bounds.Y, Math.Max(1, _agac.ClientSize.Width - e.Bounds.X), e.Bounds.Height);
+
+        using (var zemin = new SolidBrush(secili ? Tema.VurguAcik : _agac.BackColor))
+            e.Graphics.FillRectangle(zemin, alan);
+        if (secili)
         {
-            Dock = DockStyle.Fill,
-            BackColor = Tema.Kart,
-            Padding = new Padding(16),
-            Margin = new Padding(0)
-        };
-        icerik.Dock = DockStyle.Fill;
-        kart.Controls.Add(icerik);
-        return kart;
+            using var serit = new SolidBrush(Tema.Vurgu);
+            e.Graphics.FillRectangle(serit, alan.X, alan.Y + 5, 3, alan.Height - 10);
+        }
+
+        TextRenderer.DrawText(e.Graphics, e.Node.Text, yazi,
+            new Rectangle(alan.X + 10, alan.Y, alan.Width - 10, alan.Height),
+            secili ? Tema.VurguKoyu : Tema.Yazi,
+            TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
     }
 }

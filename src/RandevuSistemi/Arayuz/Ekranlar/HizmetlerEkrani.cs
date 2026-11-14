@@ -74,7 +74,7 @@ public class HizmetlerEkrani : UserControl
         _tablo.Columns["ucret"]!.FillWeight = 11;
         _tablo.Columns["aciklama"]!.FillWeight = 21;
         _tablo.Columns["ucret"]!.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
-        yerlesim.Controls.Add(_tablo, 0, 1);
+        yerlesim.Controls.Add(Tema.KartaKoy(_tablo), 0, 1);
 
         Controls.Add(yerlesim);
 

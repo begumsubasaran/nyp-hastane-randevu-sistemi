@@ -1,3 +1,4 @@
+using RandevuSistemi.Arayuz.Kontroller;
 using RandevuSistemi.Models.Kullanicilar;
 using RandevuSistemi.Servisler;
 using RandevuSistemi.Veri;
@@ -24,7 +25,7 @@ public class GirisFormu : Form
         _depo = depo;
 
         Text = "Giriş - Hastane / Klinik Randevu Sistemi";
-        ClientSize = new Size(440, 500);
+        ClientSize = new Size(820, 540);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
@@ -32,9 +33,24 @@ public class GirisFormu : Form
         Font = Tema.Normal;
         BackColor = Tema.Kart;
 
-        var tablo = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 9, Padding = new Padding(40, 24, 40, 20) };
-        tablo.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));  // başlık
-        tablo.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));  // alt başlık
+        // Sol: turkuaz karşılama paneli
+        var tanitim = new BannerPanel
+        {
+            Dock = DockStyle.Left,
+            Width = 340,
+            KoseYaricapi = 0,
+            Ortala = true,
+            Baslik = "Randevu Sistemi",
+            AltBaslik = "Hastane ve klinik randevularınızı tek yerden yönetin.\n\n" +
+                        "•  Uygun doktoru ve saati seçin\n" +
+                        "•  Randevu onayını takip edin\n" +
+                        "•  Kurum, bölüm ve hizmetleri inceleyin"
+        };
+
+        // Sağ: giriş formu
+        var tablo = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 9, Padding = new Padding(48, 30, 48, 20) };
+        tablo.RowStyles.Add(new RowStyle(SizeType.Absolute, 52));  // başlık
+        tablo.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));  // alt başlık
         tablo.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));  // "Kullanıcı adı"
         tablo.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));  // kutu
         tablo.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));  // "Şifre"
@@ -45,18 +61,18 @@ public class GirisFormu : Form
 
         var baslik = new Label
         {
-            Text = "RANDEVU SİSTEMİ",
+            Text = "Giriş Yap",
             Dock = DockStyle.Fill,
-            Font = new Font("Segoe UI Semibold", 18f),
-            ForeColor = Tema.Birincil,
-            TextAlign = ContentAlignment.MiddleCenter
+            Font = new Font("Segoe UI Semibold", 20f),
+            ForeColor = Tema.Lacivert,
+            TextAlign = ContentAlignment.BottomLeft
         };
         var altBaslik = new Label
         {
-            Text = "Devam etmek için giriş yapın",
+            Text = "Devam etmek için kullanıcı adınızı ve şifrenizi girin.",
             Dock = DockStyle.Fill,
             ForeColor = Tema.SolukYazi,
-            TextAlign = ContentAlignment.TopCenter
+            TextAlign = ContentAlignment.TopLeft
         };
 
         _kullaniciAdiKutusu = new TextBox { Dock = DockStyle.Fill, Font = new Font("Segoe UI", 11f) };
@@ -100,7 +116,8 @@ public class GirisFormu : Form
         };
         kayitBaglantisi.LinkClicked += (_, _) => HastaKaydiAc();
         tablo.Controls.Add(kayitBaglantisi, 0, 8);
-        Controls.Add(tablo);
+        Controls.Add(tablo);    // Fill olan önce eklenir...
+        Controls.Add(tanitim);  // ...Left olan sonra eklenince yerini önce o alır
 
         AcceptButton = girisButonu; // Enter ile giriş
         ActiveControl = _kullaniciAdiKutusu;

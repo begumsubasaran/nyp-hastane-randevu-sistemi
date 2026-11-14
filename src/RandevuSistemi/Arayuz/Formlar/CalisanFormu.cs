@@ -29,7 +29,7 @@ public class CalisanFormu : KullaniciFormuTemeli
         // Şube önce seçilir; uzmanlık alanı listesi o şubenin bölümlerinden dolar.
         SatirEkle("Çalışan türü", _turKutusu);
         SatirEkle("Şube", _subeKutusu);
-        SatirEkle("Bölüm", _bolumKutusu);
+        SatirEkle("Uzmanlık Alanı/Bölüm", _bolumKutusu);
         SatirEkle("Akademik unvan", _unvanKutusu);
         SatirEkle("Görev", _gorevKutusu);
 
