@@ -137,6 +137,56 @@ public class RandevuServisi
         return iptalEdilecekler;
     }
 
+    // =====================================================================
+    // Uygunluk saatleri değişince randevuların kontrolü
+    // =====================================================================
+
+    /// <summary>
+    /// Çalışanın ileri tarihli geçerli randevularından, verilen uygunluk dilimlerinin (ve şubenin)
+    /// DIŞINDA kalanları bulur. Değişiklik henüz yapılmadan "kaç randevu iptal edilecek?" sorusunu
+    /// cevaplamak için kullanılır: dilimler parametresine değişiklik SONRASI olacak liste verilir.
+    /// </summary>
+    /// <param name="dilimler">Değişiklikten sonra geçerli olacak uygunluk dilimleri.</param>
+    /// <param name="subeId">Değişiklikten sonraki şube (boşsa çalışanın şu anki şubesi).</param>
+    public List<Randevu> UygunlukDisiKalanlar(Calisan calisan, IEnumerable<UygunlukDilimi> dilimler, Guid? subeId = null)
+    {
+        Guid? hedefSube = subeId ?? calisan.SubeId;
+        List<UygunlukDilimi> dilimListesi = dilimler.ToList();
+
+        return GelecekRandevulari(calisan)
+            .Where(r => r.SubeId != hedefSube || !DilimlerKapsiyorMu(dilimListesi, r))
+            .ToList();
+    }
+
+    /// <summary>Randevu, verilen dilimlerden birinin tamamen içinde mi? (Calisan.UygunMu ile aynı mantık)</summary>
+    private static bool DilimlerKapsiyorMu(IEnumerable<UygunlukDilimi> dilimler, Randevu randevu)
+    {
+        if (randevu.Baslangic.Date != randevu.Bitis.Date)
+            return false;
+
+        TimeOnly bas = TimeOnly.FromDateTime(randevu.Baslangic);
+        TimeOnly bit = TimeOnly.FromDateTime(randevu.Bitis);
+        return dilimler.Any(d => d.Gun == randevu.Baslangic.DayOfWeek && d.KapsarMi(bas, bit));
+    }
+
+    /// <summary>
+    /// Uygunluk saatleri (veya şubesi / şube saatleri) DEĞİŞTİKTEN SONRA çağrılır:
+    /// ileri tarihli randevulardan yeni uygunluk saatlerinin dışında kalanları iptal eder,
+    /// yeni saatlere uyanlara dokunmaz. İptal edilen randevuların listesini döndürür.
+    /// </summary>
+    public List<Randevu> UygunlukDisiRandevulariIptalEt(Calisan calisan, Kullanici islemYapan, string sebep)
+    {
+        List<Randevu> iptalEdilecekler = UygunlukDisiKalanlar(calisan, calisan.UygunlukDilimleri);
+
+        if (iptalEdilecekler.Any(r => !islemYapan.RandevuIptalEdebilirMi(r)))
+            throw new UnauthorizedAccessException("Bu randevuları iptal etme yetkiniz yok.");
+
+        foreach (Randevu randevu in iptalEdilecekler)
+            randevu.IptalEt(islemYapan, sebep);
+
+        return iptalEdilecekler;
+    }
+
     /// <summary>
     /// Seçilen gün için, çalışanın uygunluk dilimlerini hizmet süresi kadar parçalara bölerek
     /// olası randevu saatlerini listeler. Her saatin müsait olup olmadığı da işaretlenir.

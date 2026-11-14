@@ -2,6 +2,8 @@ using RandevuSistemi.Arayuz.Formlar;
 using RandevuSistemi.Models.Hizmetler;
 using RandevuSistemi.Models.Kullanicilar;
 using RandevuSistemi.Models.Kurumlar;
+using RandevuSistemi.Models.Randevular;
+using RandevuSistemi.Servisler;
 using RandevuSistemi.Veri;
 
 namespace RandevuSistemi.Arayuz.Ekranlar;
@@ -327,12 +329,24 @@ public class KurumlarEkrani : UserControl
         {
             var acilis = new TimeOnly(_acilisSaati.Value.Hour, _acilisSaati.Value.Minute);
             var kapanis = new TimeOnly(_kapanisSaati.Value.Hour, _kapanisSaati.Value.Minute);
-            sube.CalismaSaatiBelirle(SeciliGun, acilis, kapanis); // kapanış açılıştan önceyse hata fırlar
+            DayOfWeek gun = SeciliGun;
+            var yeniSaat = new CalismaSaati(gun, acilis, kapanis); // kapanış açılıştan önceyse hata fırlar
 
+            // Değişiklikten önce: yeni saatlere sığmayacak uygunluk dilimleri yüzünden iptal olacak randevular
+            // O günün dilimleri yeni saatlere kırpılır (ör. 09:00-16:00 → 09:20-16:00); diğer günler aynı kalır.
+            List<Randevu> iptalEdilecekler = EtkilenecekRandevular(sube,
+                d => d.Gun != gun ? d : d.AraligaKirp(yeniSaat.Acilis, yeniSaat.Kapanis));
+            if (!Tema.IptalOnayiAl(iptalEdilecekler,
+                    $"{sube.Ad}, {CalismaSaati.GunAdi(gun)} çalışma saati {acilis:HH:mm} - {kapanis:HH:mm} olarak değiştirilecek."))
+                return;
+
+            sube.CalismaSaatiBelirle(gun, acilis, kapanis);
             int silinen = CalisanUygunluklariniDuzelt(sube);
+            int iptalSayisi = SaatDisiRandevulariIptalEt(sube);
+
             AgaciDoldur(sube.Id);
-            Tema.BilgiGoster($"{CalismaSaati.GunAdi(SeciliGun)} çalışma saati {acilis:HH:mm} - {kapanis:HH:mm} olarak kaydedildi." +
-                             UygunlukUyarisi(silinen));
+            Tema.BilgiGoster($"{CalismaSaati.GunAdi(gun)} çalışma saati {acilis:HH:mm} - {kapanis:HH:mm} olarak kaydedildi." +
+                             UygunlukUyarisi(silinen, iptalSayisi));
         }
         catch (ArgumentException hata)
         {
@@ -352,38 +366,95 @@ public class KurumlarEkrani : UserControl
             return;
         }
 
+        DayOfWeek gun = SeciliGun;
+        List<Randevu> iptalEdilecekler = EtkilenecekRandevular(sube, d => d.Gun != gun ? d : null);
+
         DialogResult cevap = MessageBox.Show(
-            $"{sube.Ad}, {gunAdi} günleri kapalı olarak işaretlensin mi?",
-            "Günü Kapat", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            $"{sube.Ad}, {gunAdi} günleri kapalı olarak işaretlensin mi?" +
+            (iptalEdilecekler.Count == 0
+                ? ""
+                : $"\n\nBu güne alınmış {iptalEdilecekler.Count} ileri tarihli randevu İPTAL EDİLECEK:\n\n" +
+                  Tema.RandevuListesiMetni(iptalEdilecekler)),
+            "Günü Kapat", MessageBoxButtons.YesNo,
+            iptalEdilecekler.Count == 0 ? MessageBoxIcon.Question : MessageBoxIcon.Warning);
         if (cevap != DialogResult.Yes)
             return;
 
-        sube.CalismaGunuKaldir(SeciliGun);
+        sube.CalismaGunuKaldir(gun);
         int silinen = CalisanUygunluklariniDuzelt(sube);
+        int iptalSayisi = SaatDisiRandevulariIptalEt(sube);
+
         AgaciDoldur(sube.Id);
-        Tema.BilgiGoster($"{sube.Ad} artık {gunAdi} günleri kapalı." + UygunlukUyarisi(silinen));
+        Tema.BilgiGoster($"{sube.Ad} artık {gunAdi} günleri kapalı." + UygunlukUyarisi(silinen, iptalSayisi));
     }
 
     /// <summary>
-    /// Şubenin saatleri değişince, bu şubedeki çalışanların yeni saatlere uymayan uygunluk
-    /// dilimlerini temizler (Calisan.SubeyeAta bu temizliği zaten yapıyor). Silinen dilim sayısını döndürür.
+    /// Şubenin saatleri değişince, bu şubedeki çalışanların uygunluk dilimlerini yeni saatlere kırpar
+    /// (Calisan.SubeyeAta bunu yapıyor). Kısaltılan veya silinen dilim sayısını döndürür.
     /// </summary>
     private int CalisanUygunluklariniDuzelt(Sube sube)
     {
         List<Calisan> subeCalisanlari = _veri.Calisanlar.Where(c => c.SubeId == sube.Id).ToList();
-        int onceki = subeCalisanlari.Sum(c => c.UygunlukDilimleri.Count);
+        int degisen = 0;
 
         foreach (Calisan calisan in subeCalisanlari)
+        {
+            List<UygunlukDilimi> onceki = calisan.UygunlukDilimleri.ToList();
             calisan.SubeyeAta(sube);
+            // Değişmeyen dilimler aynı nesne olarak kalır; yeni listede olmayan eski dilimler değişmiş/silinmiştir.
+            degisen += onceki.Count(d => !calisan.UygunlukDilimleri.Contains(d));
+        }
 
-        int sonraki = subeCalisanlari.Sum(c => c.UygunlukDilimleri.Count);
-        return onceki - sonraki;
+        return degisen;
     }
 
-    private static string UygunlukUyarisi(int silinenDilim) =>
-        silinenDilim > 0
-            ? $"\n\nYeni saatlerin dışında kalan {silinenDilim} çalışan uygunluk dilimi silindi."
-            : "";
+    /// <summary>
+    /// Şube saatleri değişirse, şubedeki çalışanların hangi ileri tarihli randevularının iptal olacağını hesaplar.
+    /// yeniHali: bir uygunluk diliminin değişiklikten sonraki halini (kırpılmış dilim veya silinecekse null) veren fonksiyon.
+    /// </summary>
+    private List<Randevu> EtkilenecekRandevular(Sube sube, Func<UygunlukDilimi, UygunlukDilimi?> yeniHali)
+    {
+        var servis = new RandevuServisi(_veri);
+        return _veri.Calisanlar
+            .Where(c => c.SubeId == sube.Id)
+            .SelectMany(c => servis.UygunlukDisiKalanlar(c, c.UygunlukDilimleri.Select(yeniHali).OfType<UygunlukDilimi>()))
+            .OrderBy(r => r.Baslangic)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Şube saatleri değiştikten sonra, şubedeki çalışanların yeni uygunluk saatleri dışında kalan
+    /// ileri tarihli randevularını iptal eder. İptal edilen randevu sayısını döndürür.
+    /// </summary>
+    private int SaatDisiRandevulariIptalEt(Sube sube)
+    {
+        var servis = new RandevuServisi(_veri);
+        string sebep = $"{sube.Ad} şubesinin çalışma saatleri {DateTime.Now:dd.MM.yyyy} tarihinde değiştiği için iptal edildi " +
+                       "(randevu yeni saatlerin dışında kaldı).";
+        int toplam = 0;
+
+        try
+        {
+            foreach (Calisan calisan in _veri.Calisanlar.Where(c => c.SubeId == sube.Id).ToList())
+                toplam += servis.UygunlukDisiRandevulariIptalEt(calisan, _aktifKullanici, sebep).Count;
+        }
+        catch (Exception hata) when (hata is UnauthorizedAccessException or InvalidOperationException)
+        {
+            Tema.HataGoster(hata.Message);
+        }
+
+        return toplam;
+    }
+
+    private static string UygunlukUyarisi(int silinenDilim, int iptalEdilenRandevu)
+    {
+        string mesaj = "";
+        if (silinenDilim > 0)
+            mesaj += $"\n\n{silinenDilim} çalışan uygunluk dilimi yeni saatlere göre kısaltıldı veya silindi.";
+        if (iptalEdilenRandevu > 0)
+            mesaj += $"\n{iptalEdilenRandevu} ileri tarihli randevu yeni saatlerin dışında kaldığı için iptal edildi.";
+        return mesaj;
+    }
 
     // =====================================================================
     // Bölümler

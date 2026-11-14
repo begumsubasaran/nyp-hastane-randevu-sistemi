@@ -41,16 +41,33 @@ public abstract class Calisan : Kullanici
     public Guid? SubeId { get; private set; }
 
     /// <summary>
-    /// Çalışanı bir şubeye atar. Yeni şubede geçerli olmayan bilgiler temizlenir:
+    /// Çalışanı bir şubeye atar (şubenin saatleri değiştiğinde de aynı şubeyle tekrar çağrılır).
+    /// Yeni şubede geçerli olmayan bilgiler düzeltilir:
     /// - o şubede bulunmayan hizmetler çıkarılır,
-    /// - şubenin çalışma saatleri dışında kalan uygunluk dilimleri silinir.
+    /// - uygunluk dilimleri şubenin çalışma saatlerine KIRPILIR
+    ///   (ör. şube 09:20'de açılıyorsa 09:00-16:00 dilimi 09:20-16:00 olur);
+    ///   şube o gün kapalıysa veya kırpınca anlamlı süre kalmıyorsa dilim silinir.
     /// </summary>
     public void SubeyeAta(Sube sube)
     {
         SubeId = sube.Id;
         _hizmetIdleri.RemoveWhere(hizmetId => sube.HizmetBul(hizmetId) is null);
-        _uygunlukDilimleri.RemoveAll(d => !sube.CalismaSaatleriIcindeMi(d.Gun, d.Baslangic, d.Bitis));
+
+        List<UygunlukDilimi> duzeltilmis = SubeyeGoreDuzeltilmisDilimler(sube);
+        _uygunlukDilimleri.Clear();
+        _uygunlukDilimleri.AddRange(duzeltilmis);
+        DilimleriSirala();
     }
+
+    /// <summary>
+    /// Uygunluk dilimleri verilen şubenin çalışma saatlerine kırpılırsa ne olacağını döndürür
+    /// (çalışanı DEĞİŞTİRMEZ). Değişiklik öncesi önizleme için de kullanılır.
+    /// </summary>
+    public List<UygunlukDilimi> SubeyeGoreDuzeltilmisDilimler(Sube sube) =>
+        _uygunlukDilimleri
+            .Select(d => d.SubeSaatlerineKirp(sube))
+            .OfType<UygunlukDilimi>() // null olanları (silinecek dilimleri) atar
+            .ToList();
 
     // ---------------- Sunduğu hizmetler ----------------
 

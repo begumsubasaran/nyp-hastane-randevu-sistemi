@@ -162,6 +162,13 @@ Reddedilen ve iptal edilen randevular saati boşaltır, çakışma kontrolünde 
 Bir çalışan **pasife alındığında** (`RandevuServisi.CalisaniPasifeAl`), o andan sonraki onay bekleyen ve
 onaylanmış randevuları sebebi yazılarak otomatik **iptal edilir**; geçmiş ve tamamlanmış randevulara dokunulmaz.
 
+Bir çalışanın **uygunluk saatleri değiştiğinde** (dilim güncelleme/silme, şube değişikliği veya şubenin çalışma
+saatlerinin daraltılması), ileri tarihli randevular yeniden kontrol edilir:
+
+- Yeni uygunluk saatlerinin **dışında kalan** randevular otomatik iptal edilir (`RandevuServisi.UygunlukDisiRandevulariIptalEt`).
+- Yeni saatlere **uyan** randevular korunur.
+- Değişiklik yapılmadan önce hangi randevuların iptal olacağı listelenir ve onay istenir (`UygunlukDisiKalanlar`).
+
 ## Onay mekanizması
 
 ```

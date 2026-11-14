@@ -40,6 +40,34 @@ public class UygunlukDilimi
     public bool CakisiyorMu(UygunlukDilimi diger) =>
         Gun == diger.Gun && Baslangic < diger.Bitis && diger.Baslangic < Bitis;
 
+    /// <summary>
+    /// Dilimi verilen saat aralığına KIRPAR (daraltır).
+    /// Örnek: 09:00-16:00 dilimi, 09:20-17:00 aralığına kırpılınca 09:20-16:00 olur.
+    /// Dilim zaten aralığın içindeyse kendisini, kırpılınca hiç (veya 15 dakikadan az) süre kalmıyorsa null döndürür.
+    /// </summary>
+    public UygunlukDilimi? AraligaKirp(TimeOnly acilis, TimeOnly kapanis)
+    {
+        TimeOnly yeniBaslangic = Baslangic > acilis ? Baslangic : acilis;   // ikisinden geç olanı
+        TimeOnly yeniBitis = Bitis < kapanis ? Bitis : kapanis;             // ikisinden erken olanı
+
+        if (yeniBaslangic == Baslangic && yeniBitis == Bitis)
+            return this; // değişiklik yok
+
+        if (yeniBitis <= yeniBaslangic || (yeniBitis - yeniBaslangic).TotalMinutes < EnKisaDakika)
+            return null; // kırpınca anlamlı bir süre kalmıyor
+
+        return new UygunlukDilimi(Gun, yeniBaslangic, yeniBitis);
+    }
+
+    /// <summary>
+    /// Dilimi şubenin o günkü çalışma saatlerine kırpar. Şube o gün kapalıysa null döndürür.
+    /// </summary>
+    public UygunlukDilimi? SubeSaatlerineKirp(Sube sube)
+    {
+        CalismaSaati? saat = sube.CalismaSaatiGetir(Gun);
+        return saat is null ? null : AraligaKirp(saat.Acilis, saat.Kapanis);
+    }
+
     public override string ToString() =>
         $"{CalismaSaati.GunAdi(Gun)}  {Baslangic:HH:mm} - {Bitis:HH:mm}";
 }

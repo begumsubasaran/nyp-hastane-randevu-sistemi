@@ -88,6 +88,35 @@ public static class Tema
         _ => Yazi
     };
 
+    /// <summary>
+    /// Randevu listesini mesaj kutusunda gösterilecek kısa metne çevirir (en fazla 10 satır).
+    /// Örnek: "• 16.11.2026 09:00  Kardiyoloji Muayenesi  (Ayşe Yılmaz)"
+    /// </summary>
+    public static string RandevuListesiMetni(IReadOnlyCollection<Randevu> randevular)
+    {
+        string liste = string.Join("\n", randevular
+            .Take(10)
+            .Select(r => $"• {r.Baslangic:dd.MM.yyyy HH:mm}  {r.HizmetAdi}  ({r.HastaAdi})"));
+        return randevular.Count > 10 ? $"{liste}\n... ve {randevular.Count - 10} randevu daha" : liste;
+    }
+
+    /// <summary>
+    /// "Şu randevular iptal edilecek, devam edilsin mi?" sorusunu sorar.
+    /// Liste boşsa soru sormadan true döndürür.
+    /// </summary>
+    public static bool IptalOnayiAl(IReadOnlyCollection<Randevu> iptalEdilecekler, string degisiklik)
+    {
+        if (iptalEdilecekler.Count == 0)
+            return true;
+
+        DialogResult cevap = MessageBox.Show(
+            $"{degisiklik}\n\nBu değişiklik nedeniyle aşağıdaki {iptalEdilecekler.Count} ileri tarihli randevu " +
+            $"yeni uygunluk saatlerinin dışında kalacak ve İPTAL EDİLECEK:\n\n{RandevuListesiMetni(iptalEdilecekler)}\n\n" +
+            "Yeni saatlere uyan randevular korunacak. Devam edilsin mi?",
+            "Randevular İptal Edilecek", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+        return cevap == DialogResult.Yes;
+    }
+
     /// <summary>İşlemin başarıyla tamamlandığını bilgi kutusunda gösterir.</summary>
     public static void BilgiGoster(string mesaj) =>
         MessageBox.Show(mesaj, "Bilgi", MessageBoxButtons.OK, MessageBoxIcon.Information);
