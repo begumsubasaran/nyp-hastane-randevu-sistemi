@@ -220,6 +220,10 @@ silindiği andan sonraki o hizmete alınmış onay bekleyen ve onaylanmış rand
 Silmeden önce iptal edilecek randevular listelenip onay istenir (`HizmetinGelecekRandevulari`). Geçmiş randevular
 korunur; randevu hizmet adını, süresini ve ücretini kendi içinde sakladığı için kayıt bozulmaz.
 
+Bir **bölüm**, içinde **aktif çalışan** (doktor veya fizyoterapist) varken silinemez (`RandevuServisi.BolumSilmeEngeli`,
+`BolumuSil`). Kullanıcıya bu çalışanların listesi gösterilir; önce pasife alınmaları veya başka şubeye atanmaları gerekir.
+Boş bölüm onay alınarak silinir. Bölüm silme hiçbir randevuyu kendiliğinden iptal etmez.
+
 ## Onay mekanizması
 
 ```

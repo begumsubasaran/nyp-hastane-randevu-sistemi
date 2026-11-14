@@ -490,7 +490,32 @@ public class KurumlarEkrani : UserControl
             return;
         }
 
-        sube.BolumKaldir(bolum.Id);
+        var servis = new RandevuServisi(_veri);
+
+        // Bölümde aktif doktor / fizyoterapist varsa silmeye izin verilmez (isimleriyle uyarı gösterilir).
+        if (servis.BolumSilmeEngeli(sube, bolum) is { } engel)
+        {
+            Tema.HataGoster(engel);
+            return;
+        }
+
+        DialogResult cevap = MessageBox.Show(
+            $"\"{sube.Ad}\" şubesindeki \"{bolum.Ad}\" bölümü silinsin mi?\n\n" +
+            "Bu bölümde aktif çalışan yok; hiçbir randevu etkilenmeyecek.",
+            "Bölümü Sil", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+        if (cevap != DialogResult.Yes)
+            return;
+
+        try
+        {
+            servis.BolumuSil(sube, bolum);
+        }
+        catch (RandevuKuraliException hata)
+        {
+            Tema.HataGoster(hata.Message);
+            return;
+        }
+
         AgaciDoldur(sube.Id);
         Tema.BilgiGoster($"\"{bolum.Ad}\" bölümü silindi.");
     }

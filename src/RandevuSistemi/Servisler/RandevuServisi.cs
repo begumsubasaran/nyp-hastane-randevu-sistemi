@@ -150,6 +150,48 @@ public class RandevuServisi
     public List<Bolum> RandevuVerilenBolumler(Sube sube) =>
         sube.Bolumler.Where(b => BolumCalisanlari(sube, b).Count > 0).ToList();
 
+    // =====================================================================
+    // Bölüm silme
+    // =====================================================================
+
+    /// <summary>
+    /// Şubede bu bölümde çalışan AKTİF doktor ve fizyoterapistler (hizmeti olsun olmasın).
+    /// Bölüm silinmeden önce kontrol edilir.
+    /// </summary>
+    public List<Calisan> BolumdekiAktifCalisanlar(Sube sube, Bolum bolum) =>
+        _veri.Calisanlar
+            .Where(c => c.AktifMi && c.SubeId == sube.Id && AyniAd(c.BolumAdi, bolum.Ad))
+            .OrderBy(c => c.TamAd)
+            .ToList();
+
+    /// <summary>
+    /// Bölüm silinebilir mi? Silinebiliyorsa null, silinemiyorsa kullanıcıya gösterilecek açıklamayı döndürür.
+    /// Bölümde aktif çalışan varsa silinemez: çalışanlar bölümsüz kalır, hastalar onları göremez,
+    /// randevuları askıda kalırdı.
+    /// </summary>
+    public string? BolumSilmeEngeli(Sube sube, Bolum bolum)
+    {
+        List<Calisan> calisanlar = BolumdekiAktifCalisanlar(sube, bolum);
+        if (calisanlar.Count == 0)
+            return null;
+
+        return $"\"{bolum.Ad}\" bölümü silinemez; bu bölümde çalışan {calisanlar.Count} aktif kişi var:\n\n" +
+               string.Join("\n", calisanlar.Select(c => $"•  {c.TamAd}  -  {c.Unvan}")) +
+               "\n\nÖnce bu çalışanları Çalışanlar ekranından pasife alın veya başka bir şubeye atayın.";
+    }
+
+    /// <summary>
+    /// Bölümü şubeden siler; bölümde aktif çalışan varsa RandevuKuraliException fırlatır.
+    /// Hiçbir randevu kendiliğinden iptal edilmez.
+    /// </summary>
+    public void BolumuSil(Sube sube, Bolum bolum)
+    {
+        if (BolumSilmeEngeli(sube, bolum) is { } engel)
+            throw new RandevuKuraliException(engel);
+
+        sube.BolumKaldir(bolum.Id);
+    }
+
     private static bool AyniAd(string? a, string? b) =>
         a is not null && b is not null && string.Equals(a.Trim(), b.Trim(), StringComparison.CurrentCultureIgnoreCase);
 
