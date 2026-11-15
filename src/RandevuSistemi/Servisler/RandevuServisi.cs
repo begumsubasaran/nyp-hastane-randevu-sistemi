@@ -35,15 +35,52 @@ public class RandevuServisi
     /// Tüm kuralları kontrol eder; uygunsa randevuyu oluşturup listeye ekler.
     /// Kurallardan biri sağlanmazsa RandevuKuraliException fırlatır.
     /// </summary>
-    public Randevu RandevuOlustur(Hasta hasta, Calisan calisan, SaglikHizmeti hizmet, DateTime baslangic)
+    /// <param name="olusturan">
+    /// Randevuyu oluşturan kullanıcı (boşsa kontrol yapılmaz):
+    ///  - Hasta sadece kendisine randevu alabilir.
+    ///  - Doktor/fizyoterapist sadece KENDİSİNE randevu verebilir; hizmetin onun sunduğu hizmetlerden
+    ///    olması zaten KuralIhlali'nde kontrol edilir. Doktorun verdiği randevu doğrudan ONAYLANIR
+    ///    (onayı verecek kişi zaten kendisi).
+    ///  - Yönetici herkese randevu oluşturabilir.
+    /// </param>
+    public Randevu RandevuOlustur(Hasta hasta, Calisan calisan, SaglikHizmeti hizmet, DateTime baslangic,
+                                  Kullanici? olusturan = null)
     {
+        if (olusturan is not null && !olusturan.RandevuOlusturabilirMi)
+            throw new UnauthorizedAccessException("Randevu oluşturma yetkiniz yok.");
+        if (olusturan is Hasta h && h.Id != hasta.Id)
+            throw new UnauthorizedAccessException("Sadece kendinize randevu alabilirsiniz.");
+        if (olusturan is Calisan c && c.Id != calisan.Id)
+            throw new UnauthorizedAccessException("Sadece kendinize randevu verebilirsiniz.");
+
         string? ihlal = KuralIhlali(hasta, calisan, hizmet, baslangic);
         if (ihlal is not null)
             throw new RandevuKuraliException(ihlal);
 
         var randevu = new Randevu(hasta, calisan, hizmet, baslangic);
+        if (olusturan is Calisan doktor)
+            randevu.Onayla(doktor);   // doktorun kendi verdiği randevu onay beklemez
         _veri.Randevular.Add(randevu);
         return randevu;
+    }
+
+    /// <summary>
+    /// Doktor/fizyoterapist şu anda hastaya randevu verebilir mi? Verebiliyorsa null,
+    /// veremiyorsa nedenini döndürür (randevu penceresi açılmadan önce gösterilir).
+    /// </summary>
+    public string? RandevuVermeEngeli(Calisan calisan)
+    {
+        if (!calisan.RandevuKabulEderMi)
+            return $"{calisan.Unvan} görevinde hastalara randevu verilmez.";
+        if (!calisan.AktifMi)
+            return "Hesabınız pasif durumda; randevu veremezsiniz.";
+        if (_veri.SubeBul(calisan.SubeId) is null)
+            return "Henüz bir şubeye atanmadınız; randevu verebilmek için yöneticinize başvurun.";
+        if (SunduguHizmetler(calisan).Count == 0)
+            return "Size tanımlı bir hizmet yok; randevu verebilmek için yöneticinize başvurun.";
+        if (calisan.UygunlukDilimleri.Count == 0)
+            return "Uygunluk saatiniz tanımlı değil; önce \"Çalışma Bilgilerim\" ekranından uygunluk saati ekleyin.";
+        return null;
     }
 
     /// <summary>

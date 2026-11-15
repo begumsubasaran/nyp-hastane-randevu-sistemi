@@ -182,6 +182,7 @@ Randevu
 |---|---|---|
 | Hasta | Şube → **Bölüm** → Doktor → İşlem → Tarih → Saat | Sadece seçilen doktorun sunduğu hizmetler listelenir; **muayene** varsa otomatik seçili gelir (laboratuvar doktorunda Kan Tahlili gibi tetkikler) |
 | Yönetici (hasta adına) | Hasta → Şube → İşlem (hizmet) → Doktor/Personel → Tarih → Saat | Listeden seçilen işlem (EKG, MR, kan tahlili gibi tetkikler dahil) |
+| Doktor / Fizyoterapist (hastaya) | Hasta → İşlem → Tarih → Saat (şube ve doktor kendisine kilitli) | Sadece **kendi sunduğu** hizmetler; randevu doğrudan **Onaylandı** olur |
 
 Hastaya yalnızca randevu veren en az bir çalışanı olan bölümler listelenir. Çalışanın bölümü `Calisan.BolumAdi`
 özelliğinden gelir: doktorda uzmanlık alanı ("Kardiyoloji"), fizyoterapistte **"Fiziksel Tıp ve Rehabilitasyon"** (bu bölüm şubede tanımlı olmalıdır)
@@ -238,12 +239,14 @@ Her metot önce **yetkiyi**, sonra **durum geçişinin** kurallara uygunluğunu 
 
 Yetki kuralları her rolün kendi sınıfında `override` edilir (çok biçimlilik):
 
-| Rol | Onaylama / Reddetme / Tamamlama | İptal |
-|---|---|---|
-| `Kullanici` (varsayılan) | Hayır | Hayır |
-| `Hasta` | Hayır | Sadece kendi randevusu |
-| `Calisan` (Doktor, Sağlık Personeli) | Sadece kendisine alınan randevular | Sadece kendisine alınan randevular |
-| `Yonetici` | Tüm randevular | Tüm randevular |
+| Rol | Randevu oluşturma | Onaylama / Reddetme / Tamamlama | İptal |
+|---|---|---|---|
+| `Kullanici` (varsayılan) | Hayır | Hayır | Hayır |
+| `Hasta` | Sadece kendine | Hayır | Sadece kendi randevusu |
+| `Calisan` (Doktor, Fizyoterapist) | Sadece kendisine, kendi hizmetlerinden | Sadece kendisine alınan randevular | Sadece kendisine alınan randevular |
+| `Yonetici` | Herkese | Tüm randevular | Tüm randevular |
+
+"Sadece kendine / kendisine" kısıtı `RandevuServisi.RandevuOlustur` metoduna gönderilen `olusturan` kullanıcıyla kontrol edilir.
 
 Aynı şekilde `RandevuyuGorebilirMi` ve `RandevuOlusturabilirMi` de her rolde `override` edilir;
 ekranlar kullanıcının rolünü kontrol etmek yerine bu metotlara sorar.

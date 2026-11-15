@@ -2,6 +2,7 @@ using RandevuSistemi.Arayuz.Formlar;
 using RandevuSistemi.Models.Kullanicilar;
 using RandevuSistemi.Models.Kurumlar;
 using RandevuSistemi.Models.Randevular;
+using RandevuSistemi.Servisler;
 using RandevuSistemi.Veri;
 
 namespace RandevuSistemi.Arayuz.Ekranlar;
@@ -45,7 +46,8 @@ public class RandevularEkrani : UserControl
         Button yeniButon = Tema.Buton("+ Yeni Randevu");
         yeniButon.Margin = new Padding(0, 0, 24, 0);
         yeniButon.Click += (_, _) => YeniRandevu();
-        // Doktor/personel randevu oluşturmaz; buton sadece yetkisi olana gösterilir.
+        // Buton sadece randevu oluşturma yetkisi olana gösterilir (hasta, doktor/fizyoterapist, yönetici).
+        // Hemşire, laborant gibi randevu kabul etmeyen personelde gösterilmez.
         if (_islemYapan?.RandevuOlusturabilirMi == true)
             ustCubuk.Controls.Add(yeniButon);
         ustCubuk.Controls.Add(new Label
@@ -319,8 +321,15 @@ public class RandevularEkrani : UserControl
             return;
         }
 
+        if (_islemYapan is Calisan calisan && new RandevuServisi(_veri).RandevuVermeEngeli(calisan) is { } engel)
+        {
+            Tema.HataGoster(engel);
+            return;
+        }
+
         // Hasta giriş yaptıysa randevu sadece kendisi için alınabilir (hasta seçimi kilitli).
-        using var form = new RandevuFormu(_veri, _islemYapan as Hasta);
+        // Doktor giriş yaptıysa randevu sadece kendisine ve kendi hizmetlerinden verilebilir.
+        using var form = new RandevuFormu(_veri, _islemYapan as Hasta, _islemYapan as Calisan);
         if (form.ShowDialog(this) == DialogResult.OK)
         {
             TabloyuDoldur();

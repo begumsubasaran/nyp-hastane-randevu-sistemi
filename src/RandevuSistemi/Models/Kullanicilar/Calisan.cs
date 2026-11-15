@@ -200,6 +200,13 @@ public abstract class Calisan : Kullanici
     /// <summary>Doktor/personel sadece kendisine alınmış randevuları görür.</summary>
     public override bool RandevuyuGorebilirMi(Randevu randevu) => randevu.CalisanId == Id;
 
+    /// <summary>
+    /// Randevu kabul eden çalışan (doktor, fizyoterapist) hastaya randevu verebilir;
+    /// ama SADECE KENDİSİNE ve KENDİ SUNDUĞU hizmetlerden (RandevuServisi.RandevuOlustur kontrol eder).
+    /// Hemşire, laborant gibi randevu kabul etmeyen personel randevu veremez.
+    /// </summary>
+    public override bool RandevuOlusturabilirMi => RandevuKabulEderMi;
+
     public override string BilgiOzeti() =>
         $"{base.BilgiOzeti()} - {Unvan}{(AktifMi ? "" : " (pasif)")}";
 }

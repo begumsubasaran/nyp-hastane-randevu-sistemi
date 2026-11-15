@@ -183,7 +183,10 @@ public abstract class Kullanici
     /// </summary>
     public virtual bool RandevuyuGorebilirMi(Randevu randevu) => false;
 
-    /// <summary>Bu kullanıcı yeni randevu oluşturabilir mi? (Varsayılan: hayır; Hasta ve Yönetici: evet)</summary>
+    /// <summary>
+    /// Bu kullanıcı yeni randevu oluşturabilir mi? (Varsayılan: hayır)
+    /// Hasta: kendisine; Doktor/Fizyoterapist: kendisine ve kendi hizmetlerinden; Yönetici: herkese.
+    /// </summary>
     public virtual bool RandevuOlusturabilirMi => false;
 
     /// <summary>

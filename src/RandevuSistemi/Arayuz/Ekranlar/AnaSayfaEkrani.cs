@@ -3,6 +3,7 @@ using RandevuSistemi.Arayuz.Formlar;
 using RandevuSistemi.Arayuz.Kontroller;
 using RandevuSistemi.Models.Kullanicilar;
 using RandevuSistemi.Models.Randevular;
+using RandevuSistemi.Servisler;
 using RandevuSistemi.Veri;
 
 namespace RandevuSistemi.Arayuz.Ekranlar;
@@ -229,7 +230,9 @@ public class AnaSayfaEkrani : UserControl
                     "Şube ve hizmet bilgilerinizi görün", () => _menuyeGit("Çalışma Bilgilerim")));
                 break;
 
-            case Calisan:
+            case Calisan calisan:
+                kisayollar.Add(new HizliIslemKarti(Tema.Ikonlar.Ekle, "Randevu Ver",
+                    "Hastaya kendi hizmetlerinizden randevu verin", () => RandevuAl(null, "Randevularım", calisan)));
                 kisayollar.Add(new HizliIslemKarti(Tema.Ikonlar.Onay, "Randevularım",
                     "Bekleyen randevuları onaylayın", () => _menuyeGit("Randevularım")));
                 kisayollar.Add(new HizliIslemKarti(Tema.Ikonlar.Saat, "Çalışma Bilgilerim",
@@ -267,8 +270,11 @@ public class AnaSayfaEkrani : UserControl
         return panel;
     }
 
-    /// <summary>Randevu oluşturma penceresini açar; randevu alınırsa randevu listesine geçer.</summary>
-    private void RandevuAl(Hasta? hasta, string sonrakiEkran)
+    /// <summary>
+    /// Randevu oluşturma penceresini açar; randevu alınırsa randevu listesine geçer.
+    /// hasta doluysa hasta kendine alıyor, calisan doluysa doktor kendi hizmetlerinden veriyor.
+    /// </summary>
+    private void RandevuAl(Hasta? hasta, string sonrakiEkran, Calisan? calisan = null)
     {
         if (!_veri.Hastalar.Any())
         {
@@ -276,7 +282,13 @@ public class AnaSayfaEkrani : UserControl
             return;
         }
 
-        using var form = new RandevuFormu(_veri, hasta);
+        if (calisan is not null && new RandevuServisi(_veri).RandevuVermeEngeli(calisan) is { } engel)
+        {
+            Tema.HataGoster(engel);
+            return;
+        }
+
+        using var form = new RandevuFormu(_veri, hasta, calisan);
         if (form.ShowDialog(this) == DialogResult.OK)
             _menuyeGit(sonrakiEkran);
     }

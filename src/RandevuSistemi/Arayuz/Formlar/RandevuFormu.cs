@@ -8,12 +8,15 @@ using RandevuSistemi.Veri;
 namespace RandevuSistemi.Arayuz.Formlar;
 
 /// <summary>
-/// Yeni randevu oluşturma penceresi. İki şekilde çalışır:
+/// Yeni randevu oluşturma penceresi. Üç şekilde çalışır:
 ///  - HASTA kendisi randevu alırken: Şube → BÖLÜM → Doktor → İşlem → Tarih → Saat.
 ///    İşlem listesinde sadece seçilen doktorun sunduğu hizmetler vardır; muayene varsa o otomatik seçilir.
 ///    (Laboratuvar doktoru gibi muayenesi olmayanlarda ilk hizmeti seçilir: Kan Tahlili gibi.)
 ///  - YÖNETİCİ hasta adına randevu oluştururken: Hasta → Şube → İşlem (hizmet) → Doktor/Personel → Tarih → Saat.
 ///    Böylece tetkik/görüntüleme gibi işlemler (EKG, MR, kan tahlili) için de randevu verilebilir.
+///  - DOKTOR / FİZYOTERAPİST hastaya randevu verirken: Hasta → İşlem → Tarih → Saat.
+///    Şube ve doktor kendisine kilitlidir; İşlem listesinde sadece kendi sunduğu hizmetler vardır.
+///    Verdiği randevu doğrudan "Onaylandı" olur.
 /// Her seçim bir sonraki listeyi süzer. Saat listesinde çalışanın uygunluk dilimleri
 /// hizmet süresine göre bölünerek gösterilir.
 /// Tüm kurallar (çakışma, uygunluk...) RandevuServisi'nde kontrol edilir.
@@ -35,6 +38,9 @@ public class RandevuFormu : Form
     /// <summary>true: hasta bölüm seçerek randevu alıyor; false: yönetici işlem (hizmet) seçiyor.</summary>
     private readonly bool _bolumIle;
 
+    /// <summary>Doluysa randevuyu bu doktor/fizyoterapist veriyor: şube, çalışan ve hizmetler ona göre kilitlenir.</summary>
+    private readonly Calisan? _sabitCalisan;
+
     /// <summary>Çalışanı açılır kutuda "Ad Soyad - Unvan" şeklinde göstermek için.</summary>
     private sealed record CalisanSecenegi(Calisan Calisan)
     {
@@ -43,15 +49,19 @@ public class RandevuFormu : Form
 
     /// <param name="sabitHasta">
     /// Doluysa (hasta kendisi giriş yaptıysa) hasta seçimi bu kişiye kilitlenir.
-    /// Boşsa (yönetici) tüm hastalar arasından seçim yapılabilir.
+    /// Boşsa (yönetici, doktor) tüm hastalar arasından seçim yapılabilir.
     /// </param>
-    public RandevuFormu(UygulamaVerisi veri, Hasta? sabitHasta = null)
+    /// <param name="sabitCalisan">
+    /// Doluysa (doktor/fizyoterapist giriş yaptıysa) randevu sadece bu çalışana ve onun hizmetlerinden verilir.
+    /// </param>
+    public RandevuFormu(UygulamaVerisi veri, Hasta? sabitHasta = null, Calisan? sabitCalisan = null)
     {
         _veri = veri;
         _servis = new RandevuServisi(veri);
         _bolumIle = sabitHasta is not null;
+        _sabitCalisan = sabitCalisan;
 
-        Text = "Yeni Randevu";
+        Text = _sabitCalisan is null ? "Yeni Randevu" : "Hastaya Randevu Ver";
         ClientSize = new Size(640, _bolumIle ? 680 : 640);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -86,7 +96,12 @@ public class RandevuFormu : Form
 
         _subeKutusu = Kutu();
         foreach (SubeSecenegi secenek in SubeSecenegi.Tumu(_veri))
-            _subeKutusu.Items.Add(secenek);
+        {
+            // Doktor randevu veriyorsa sadece kendi şubesi listelenir.
+            if (_sabitCalisan is null || secenek.Sube.Id == _sabitCalisan.SubeId)
+                _subeKutusu.Items.Add(secenek);
+        }
+        _subeKutusu.Enabled = _sabitCalisan is null;
 
         _hizmetKutusu = Kutu();
         _bolumKutusu = Kutu();
@@ -196,7 +211,13 @@ public class RandevuFormu : Form
     private void HizmetleriDoldur()
     {
         _hizmetKutusu.Items.Clear();
-        if (SeciliSube is not null)
+        if (_sabitCalisan is not null)
+        {
+            // Doktor randevu veriyor: sadece kendi sunduğu hizmetler (muayene başta).
+            foreach (SaglikHizmeti hizmet in _servis.SunduguHizmetler(_sabitCalisan))
+                _hizmetKutusu.Items.Add(hizmet);
+        }
+        else if (SeciliSube is not null)
         {
             foreach (SaglikHizmeti hizmet in SeciliSube.Hizmetler)
                 _hizmetKutusu.Items.Add(hizmet);
@@ -264,12 +285,14 @@ public class RandevuFormu : Form
         else if (SeciliSube is { } sube && SeciliHizmet is { } hizmet)
         {
             IEnumerable<Calisan> uygunlar = _veri.Calisanlar.Where(c =>
-                c.AktifMi && c.RandevuKabulEderMi && c.SubeId == sube.Id && c.HizmetSunuyorMu(hizmet.Id));
+                c.AktifMi && c.RandevuKabulEderMi && c.SubeId == sube.Id && c.HizmetSunuyorMu(hizmet.Id)
+                && (_sabitCalisan is null || c.Id == _sabitCalisan.Id));   // doktor: sadece kendisi
 
             foreach (Calisan calisan in uygunlar)
                 _calisanKutusu.Items.Add(new CalisanSecenegi(calisan));
         }
 
+        _calisanKutusu.Enabled = _sabitCalisan is null;
         if (_calisanKutusu.Items.Count > 0)
             _calisanKutusu.SelectedIndex = 0;  // bu, sonraki listeyi doldurur
         else if (_bolumIle)
@@ -347,7 +370,9 @@ public class RandevuFormu : Form
         {
             Tema.HataGoster(_bolumIle
                 ? "Lütfen bölüm, doktor, işlem ve saat seçin."
-                : "Lütfen hasta, işlem, doktor/personel ve saat seçin.");
+                : _sabitCalisan is not null
+                    ? "Lütfen hasta, işlem ve saat seçin."
+                    : "Lütfen hasta, işlem, doktor/personel ve saat seçin.");
             return;
         }
 
@@ -355,7 +380,10 @@ public class RandevuFormu : Form
         {
             // Saat "uygun değil" olarak işaretli olsa bile servise gönderiyoruz:
             // kuralları kontrol eden asıl yer servis; ihlal varsa hata fırlatır.
-            OlusturulanRandevu = _servis.RandevuOlustur(SeciliHasta, SeciliCalisan, SeciliHizmet, SeciliSaat.Baslangic);
+            // Doktor veriyorsa oluşturan olarak kendisi gönderilir: servis "sadece kendine" kuralını kontrol eder
+            // ve randevuyu doğrudan onaylar.
+            OlusturulanRandevu = _servis.RandevuOlustur(SeciliHasta, SeciliCalisan, SeciliHizmet,
+                SeciliSaat.Baslangic, _sabitCalisan);
 
             Tema.BilgiGoster(
                 "Randevu oluşturuldu.\n\n" +
@@ -366,7 +394,7 @@ public class RandevuFormu : Form
 
             DialogResult = DialogResult.OK;
         }
-        catch (Exception hata) when (hata is InvalidOperationException or ArgumentException)
+        catch (Exception hata) when (hata is InvalidOperationException or ArgumentException or UnauthorizedAccessException)
         {
             // RandevuKuraliException da InvalidOperationException'dan türediği için burada yakalanır.
             Tema.HataGoster(hata.Message);
