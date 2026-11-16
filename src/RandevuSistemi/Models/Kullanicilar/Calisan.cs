@@ -54,6 +54,26 @@ public abstract class Calisan : Kullanici
     public Guid? SubeId { get; private set; }
 
     /// <summary>
+    /// Çalışan verilen şubeye taşınabilir mi? Taşınabiliyorsa null, taşınamıyorsa nedenini döndürür.
+    /// Kural: çalışanın bölümü (doktorda uzmanlık alanı, fizyoterapistte "Fiziksel Tıp ve Rehabilitasyon")
+    /// yeni şubede de bulunmalıdır; yoksa hastalar onu hiçbir bölümde göremezdi.
+    /// Bölümü olmayan personel (hemşire, laborant...) her şubeye taşınabilir.
+    /// </summary>
+    public string? SubeDegisiklikEngeli(Sube yeniSube)
+    {
+        if (BolumAdi is not { } bolum)
+            return null;
+
+        bool bolumVar = yeniSube.Bolumler.Any(b =>
+            string.Equals(b.Ad.Trim(), bolum.Trim(), StringComparison.CurrentCultureIgnoreCase));
+        if (bolumVar)
+            return null;
+
+        return $"\"{yeniSube.Ad}\" şubesinde \"{bolum}\" bölümü yok; {TamAd} bu şubeye taşınamaz.\n\n" +
+               $"Önce Kurumlar ekranından bu şubeye \"{bolum}\" bölümünü ekleyin, sonra şubesini değiştirin.";
+    }
+
+    /// <summary>
     /// Çalışanı bir şubeye atar (şubenin saatleri değiştiğinde de aynı şubeyle tekrar çağrılır).
     /// Yeni şubede geçerli olmayan bilgiler düzeltilir:
     /// - o şubede bulunmayan hizmetler çıkarılır,

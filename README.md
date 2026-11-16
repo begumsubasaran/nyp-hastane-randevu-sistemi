@@ -225,6 +225,10 @@ Bir **bölüm**, içinde **aktif çalışan** (doktor veya fizyoterapist) varken
 `BolumuSil`). Kullanıcıya bu çalışanların listesi gösterilir; önce pasife alınmaları veya başka şubeye atanmaları gerekir.
 Boş bölüm onay alınarak silinir. Bölüm silme hiçbir randevuyu kendiliğinden iptal etmez.
 
+Bir doktor veya fizyoterapist **başka şubeye taşınırken**, bölümü yeni şubede de bulunmalıdır
+(`Calisan.SubeDegisiklikEngeli`). Örneğin Dahiliye doktoru, Dahiliye bölümü olmayan bir şubeye taşınamaz; önce
+Kurumlar ekranından o şubeye bölüm eklenmelidir. Bölümü olmayan personel (hemşire, laborant) her şubeye taşınabilir.
+
 ## Onay mekanizması
 
 ```

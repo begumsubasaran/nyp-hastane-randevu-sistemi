@@ -384,6 +384,14 @@ public class CalisanlarEkrani : UserControl
         Calisan calisan = _seciliCalisan;
         var servis = new RandevuServisi(_veri);
 
+        // Çalışanın bölümü yeni şubede yoksa taşımaya izin verilmez (kuralı Calisan sınıfı belirler).
+        if (calisan.SubeDegisiklikEngeli(secenek.Sube) is { } engel)
+        {
+            Tema.HataGoster(engel);
+            SubeKutusunuAyarla(calisan); // eski şubeye geri dön
+            return;
+        }
+
         // Değişiklikten SONRA kalacak dilimler: yeni şubenin çalışma saatlerine uyanlar.
         // Eski şubedeki ileri tarihli randevular ve yeni saatlere uymayanlar iptal edilecek.
         List<UygunlukDilimi> kalacakDilimler = calisan.SubeyeGoreDuzeltilmisDilimler(secenek.Sube);
