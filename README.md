@@ -273,4 +273,3 @@ Her adım ayrı bir commit olarak gönderilir.
 | 9 | Randevu onay mekanizması (onayla, reddet, iptal, tamamla) ve rol bazlı yetkiler | ✅ |
 | 10 | Giriş sistemi ve rol bazlı menüler | ✅ |
 | 11 | Yönetim ekranları: kurum/şube ekleme, çalışma saati ve bölüm düzenleme, çalışan kaydı ve pasife alma, hasta kaydı | ✅ |
-| 12 | Örnek veriler, UML sınıf diyagramı, son düzenlemeler | ⏳ |
