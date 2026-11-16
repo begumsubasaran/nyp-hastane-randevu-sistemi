@@ -1,4 +1,6 @@
+using System.Drawing.Drawing2D;
 using RandevuSistemi.Arayuz.Formlar;
+using RandevuSistemi.Arayuz.Kontroller;
 using RandevuSistemi.Models.Hizmetler;
 using RandevuSistemi.Models.Kullanicilar;
 using RandevuSistemi.Models.Kurumlar;
@@ -24,22 +26,29 @@ public class KurumlarEkrani : UserControl
     private readonly TreeView _agac;
     private readonly Label _secilenBaslik;
     private readonly Label _secilenBilgi;
-    private readonly ListBox _saatListesi;
-    private readonly ListBox _bolumListesi;
+    private readonly ListBox _saatListesi;   // haftanın 7 günü (kapalı günler dahil), kendimiz çiziyoruz
+    private readonly ListBox _bolumListesi;  // bölümler + çalışan sayısı, kendimiz çiziyoruz
     private readonly ListBox _hizmetListesi;
 
-    // Çalışma saati düzenleme
-    private readonly ComboBox _gunKutusu;
+    // Çalışma saati düzenleme: gün listeden seçilir, saatler alttaki şeritte düzenlenir
+    private readonly Label _seciliGunEtiketi;
     private readonly DateTimePicker _acilisSaati;
     private readonly DateTimePicker _kapanisSaati;
-    private readonly FlowLayoutPanel _saatAraclari;
+    private readonly Control _saatAraclari;
+    private DayOfWeek _seciliGun = DayOfWeek.Monday;
 
     // Bölüm düzenleme
     private readonly TextBox _bolumAdiKutusu;
-    private readonly FlowLayoutPanel _bolumAraclari;
+    private readonly Control _bolumAraclari;
+
+    /// <summary>Seçili şubedeki her bölümde kaç aktif çalışan olduğu (bölüm satırında gösterilir).</summary>
+    private Dictionary<Guid, int> _bolumCalisanSayilari = new();
 
     private Sube? _seciliSube;
     private Kurum? _seciliKurum;
+
+    /// <summary>Çalışma saatleri listesinin bir satırı: gün ve (açıksa) saatleri. Kapalı günlerde Saat null'dur.</summary>
+    private sealed record GunSatiri(DayOfWeek Gun, CalismaSaati? Saat);
 
     public KurumlarEkrani(UygulamaVerisi veri, Kullanici aktifKullanici)
     {
@@ -97,28 +106,41 @@ public class KurumlarEkrani : UserControl
         yerlesim.Controls.Add(solTaraf, 0, 0);
 
         // ================= Sağ: seçilen öğenin ayrıntıları =================
-        var detay = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 10, BackColor = Tema.Kart };
+        // Düzen:  [Şube adı / bilgi]
+        //         [Çalışma Saatleri kutusu] [Bölümler kutusu]   ← yan yana
+        //         [Hizmetler]
+        bool duzenleyebilir = _aktifKullanici.KurumBilgileriniDuzenleyebilirMi;
+
+        var detay = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 5, BackColor = Tema.Kart };
         detay.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));   // 0 başlık
-        detay.RowStyles.Add(new RowStyle(SizeType.Absolute, 28));   // 1 bilgi
-        detay.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));   // 2 "Çalışma Saatleri"
-        detay.RowStyles.Add(new RowStyle(SizeType.Percent, 36));    // 3 saat listesi
-        detay.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));   // 4 saat araçları
-        detay.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));   // 5 "Bölümler"
-        detay.RowStyles.Add(new RowStyle(SizeType.Percent, 28));    // 6 bölüm listesi
-        detay.RowStyles.Add(new RowStyle(SizeType.Absolute, 46));   // 7 bölüm araçları
-        detay.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));   // 8 "Hizmetler"
-        detay.RowStyles.Add(new RowStyle(SizeType.Percent, 36));    // 9 hizmet listesi
+        detay.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));   // 1 bilgi
+        detay.RowStyles.Add(new RowStyle(SizeType.Percent, 60));    // 2 saatler + bölümler
+        detay.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));   // 3 "Hizmetler"
+        detay.RowStyles.Add(new RowStyle(SizeType.Percent, 40));    // 4 hizmet listesi
 
         _secilenBaslik = new Label { Dock = DockStyle.Fill, Font = Tema.AltBaslik, ForeColor = Tema.Yazi };
-        _secilenBilgi = new Label { Dock = DockStyle.Fill, ForeColor = Tema.SolukYazi };
-        _saatListesi = YeniListe(secilebilir: true);
-        _bolumListesi = YeniListe(secilebilir: true);
-        _hizmetListesi = YeniListe(secilebilir: false);
+        _secilenBilgi = new Label { Dock = DockStyle.Fill, ForeColor = Tema.SolukYazi, TextAlign = ContentAlignment.TopLeft };
 
-        // ---- Çalışma saati araçları: [Gün] [açılış] – [kapanış] [Kaydet] [Günü Kapat] ----
-        _gunKutusu = new KaydirmasizComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 110, Margin = new Padding(0, 6, 6, 0) };
-        foreach (DayOfWeek gun in CalismaSaati.HaftaninGunleri)
-            _gunKutusu.Items.Add(CalismaSaati.GunAdi(gun));
+        // ---- Çalışma saatleri: 7 günlük liste + düzenleme şeridi ----
+        _saatListesi = CizilenListe(GunSatiriniCiz);
+        _saatListesi.SelectedIndexChanged += (_, _) =>
+        {
+            if (_saatListesi.SelectedItem is GunSatiri satir)
+            {
+                _seciliGun = satir.Gun;
+                SeciliGununSaatleriniYukle();
+            }
+        };
+
+        _seciliGunEtiketi = new Label
+        {
+            AutoSize = false,
+            Size = new Size(100, 30),
+            Font = Tema.Kalin,
+            ForeColor = Tema.Lacivert,
+            TextAlign = ContentAlignment.MiddleLeft,
+            Margin = new Padding(0, 2, 8, 0)
+        };
         _acilisSaati = SaatSecici();
         _kapanisSaati = SaatSecici();
         Button saatKaydet = KucukButon("Kaydet", birincil: true);
@@ -126,59 +148,73 @@ public class KurumlarEkrani : UserControl
         saatKaydet.Click += (_, _) => CalismaSaatiKaydet();
         gunuKapat.Click += (_, _) => GunuKapat();
 
-        _saatAraclari = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false };
-        _saatAraclari.Controls.Add(_gunKutusu);
-        _saatAraclari.Controls.Add(_acilisSaati);
-        _saatAraclari.Controls.Add(new Label { Text = "–", AutoSize = true, Margin = new Padding(0, 10, 6, 0) });
-        _saatAraclari.Controls.Add(_kapanisSaati);
-        _saatAraclari.Controls.Add(saatKaydet);
-        _saatAraclari.Controls.Add(gunuKapat);
+        var saatSatiri = YatayDizi(_seciliGunEtiketi, KucukEtiket("Açılış"), _acilisSaati, KucukEtiket("Kapanış"), _kapanisSaati);
+        var saatButonlari = YatayDizi(saatKaydet, gunuKapat, IpucuEtiketi("Listeden gün seçin"));
+        _saatAraclari = DuzenlemeSeridi(saatSatiri, saatButonlari);
 
-        _gunKutusu.SelectedIndexChanged += (_, _) => SeciliGununSaatleriniYukle();
-        _saatListesi.SelectedIndexChanged += (_, _) =>
+        // ---- Bölümler: liste (çalışan sayısıyla) + ekleme şeridi ----
+        _bolumListesi = CizilenListe(BolumSatiriniCiz);
+
+        _bolumAdiKutusu = new TextBox
         {
-            if (_saatListesi.SelectedItem is CalismaSaati saat)
-                _gunKutusu.SelectedIndex = CalismaSaati.GunSirasi(saat.Gun);
+            Dock = DockStyle.Fill,
+            BorderStyle = BorderStyle.None,
+            Font = new Font("Segoe UI", 10.5f),
+            PlaceholderText = "Yeni bölüm adı (ör. Kardiyoloji)"
         };
+        _bolumAdiKutusu.KeyDown += (_, e) =>
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                e.SuppressKeyPress = true; // "bip" sesini engelle
+                BolumEkle();
+            }
+        };
+        // Kenarlıksız metin kutusunu beyaz, yuvarlak köşeli bir kutunun içine koyuyoruz
+        var bolumAdiCercevesi = new KartPanel
+        {
+            Dock = DockStyle.Fill,
+            KoseYaricapi = 8,
+            Padding = new Padding(10, 8, 10, 4),
+            Margin = new Padding(0, 0, 8, 0)
+        };
+        bolumAdiCercevesi.Controls.Add(_bolumAdiKutusu);
 
-        // ---- Bölüm araçları: [bölüm adı] [Ekle] [Seçiliyi Sil] ----
-        _bolumAdiKutusu = new TextBox { Width = 200, Margin = new Padding(0, 8, 6, 0), PlaceholderText = "Yeni bölüm adı" };
-        Button bolumEkle = KucukButon("Ekle", birincil: true);
+        Button bolumEkle = KucukButon("+ Ekle", birincil: true);
         Button bolumSil = KucukButon("Seçiliyi Sil", birincil: false);
         bolumEkle.Click += (_, _) => BolumEkle();
         bolumSil.Click += (_, _) => BolumSil();
 
-        _bolumAraclari = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false };
-        _bolumAraclari.Controls.Add(_bolumAdiKutusu);
-        _bolumAraclari.Controls.Add(bolumEkle);
-        _bolumAraclari.Controls.Add(bolumSil);
+        var bolumGirisSatiri = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, Margin = new Padding(0) };
+        bolumGirisSatiri.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        bolumGirisSatiri.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        bolumGirisSatiri.Controls.Add(bolumAdiCercevesi, 0, 0);
+        bolumGirisSatiri.Controls.Add(bolumEkle, 1, 0);
+        var bolumButonlari = YatayDizi(bolumSil, IpucuEtiketi("Aktif çalışanı olan bölüm silinemez"));
+        _bolumAraclari = DuzenlemeSeridi(bolumGirisSatiri, bolumButonlari);
+
+        // Düzenleme yetkisi yoksa (hasta) düzenleme şeritleri hiç eklenmez: ekran salt okunur olur.
+        var ortaBolum = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, Margin = new Padding(0, 6, 0, 0) };
+        ortaBolum.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 52));
+        ortaBolum.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 48));
+        ortaBolum.Controls.Add(Kutucuk(Tema.Ikonlar.Saat, "Çalışma Saatleri", _saatListesi,
+            duzenleyebilir ? _saatAraclari : null, new Padding(0, 0, 8, 0)), 0, 0);
+        ortaBolum.Controls.Add(Kutucuk(Tema.Ikonlar.Liste, "Bölümler", _bolumListesi,
+            duzenleyebilir ? _bolumAraclari : null, new Padding(8, 0, 0, 0)), 1, 0);
+
+        _hizmetListesi = YeniListe(secilebilir: false);
 
         detay.Controls.Add(_secilenBaslik, 0, 0);
         detay.Controls.Add(_secilenBilgi, 0, 1);
-        detay.Controls.Add(Tema.BolumBasligi("Çalışma Saatleri"), 0, 2);
-        detay.Controls.Add(_saatListesi, 0, 3);
-        detay.Controls.Add(_saatAraclari, 0, 4);
-        detay.Controls.Add(Tema.BolumBasligi("Bölümler"), 0, 5);
-        detay.Controls.Add(_bolumListesi, 0, 6);
-        detay.Controls.Add(_bolumAraclari, 0, 7);
-        detay.Controls.Add(Tema.BolumBasligi(_aktifKullanici.KurumBilgileriniDuzenleyebilirMi
+        detay.Controls.Add(ortaBolum, 0, 2);
+        detay.Controls.Add(KutucukBasligi(Tema.Ikonlar.Saglik, duzenleyebilir
             ? "Hizmetler  (Hizmetler ekranından yönetilir)"
-            : "Hizmetler  (süre ve ücret)"), 0, 8);
-        detay.Controls.Add(_hizmetListesi, 0, 9);
+            : "Hizmetler  (süre ve ücret)"), 0, 3);
+        detay.Controls.Add(_hizmetListesi, 0, 4);
         yerlesim.Controls.Add(KartIcineAl(detay), 1, 0);
-
-        // Düzenleme yetkisi yoksa (hasta) saat ve bölüm araç satırları gizlenir: ekran salt okunur olur.
-        if (!_aktifKullanici.KurumBilgileriniDuzenleyebilirMi)
-        {
-            _saatAraclari.Visible = false;
-            _bolumAraclari.Visible = false;
-            detay.RowStyles[4].Height = 0;
-            detay.RowStyles[7].Height = 0;
-        }
 
         Controls.Add(yerlesim);
 
-        _gunKutusu.SelectedIndex = 0;
         AgaciDoldur(seciliSubeId: null);
     }
 
@@ -240,17 +276,26 @@ public class KurumlarEkrani : UserControl
                 _secilenBaslik.Text = sube.Ad;
                 _secilenBilgi.Text = $"{_seciliKurum?.Ad} · {sube.Adres}";
 
-                foreach (CalismaSaati saat in sube.CalismaSaatleri)
-                    _saatListesi.Items.Add(saat);
+                // Haftanın 7 günü listelenir; kapalı günler "Kapalı" etiketiyle görünür.
+                foreach (DayOfWeek gun in CalismaSaati.HaftaninGunleri)
+                    _saatListesi.Items.Add(new GunSatiri(gun, sube.CalismaSaatiGetir(gun)));
+
+                // Her bölümdeki aktif çalışan sayısı (satırda "2 çalışan" olarak gösterilir).
+                var servis = new RandevuServisi(_veri);
+                _bolumCalisanSayilari = sube.Bolumler.ToDictionary(
+                    b => b.Id, b => servis.BolumdekiAktifCalisanlar(sube, b).Count);
                 foreach (Bolum bolum in sube.Bolumler)
                     _bolumListesi.Items.Add(bolum);
+                if (sube.Bolumler.Count == 0)
+                    _bolumListesi.Items.Add("Henüz bölüm eklenmemiş");
 
                 if (sube.Hizmetler.Count == 0)
                     _hizmetListesi.Items.Add("Hizmet tanımlanmamış");
                 foreach (SaglikHizmeti hizmet in sube.Hizmetler)
                     _hizmetListesi.Items.Add(hizmet); // "Ad (süre, ücret)" şeklinde görünür
 
-                SeciliGununSaatleriniYukle();
+                // Önceden seçili gün tekrar seçilir (kaydettikten sonra liste yenilense de aynı gün kalır).
+                _saatListesi.SelectedIndex = CalismaSaati.GunSirasi(_seciliGun);
                 break;
 
             case Kurum kurum:
@@ -258,6 +303,8 @@ public class KurumlarEkrani : UserControl
                 _secilenBaslik.Text = kurum.Ad;
                 _secilenBilgi.Text = $"{kurum.TurAdi} · {kurum.Subeler.Count} şube" +
                                      (kurum.CokSubeliMi ? " (çok şubeli)" : " (tek şubeli)");
+                _saatListesi.Items.Add("Bir şube seçin");
+                _bolumListesi.Items.Add("Bir şube seçin");
                 _hizmetListesi.Items.Add("Saat, bölüm ve hizmetleri görmek için soldan bir şube seçin.");
                 break;
 
@@ -310,11 +357,12 @@ public class KurumlarEkrani : UserControl
     // Çalışma saatleri
     // =====================================================================
 
-    private DayOfWeek SeciliGun => CalismaSaati.HaftaninGunleri[Math.Max(0, _gunKutusu.SelectedIndex)];
+    private DayOfWeek SeciliGun => _seciliGun;
 
     /// <summary>Seçilen günün mevcut saatlerini kutulara yazar (o gün kapalıysa 09:00 - 17:00 önerir).</summary>
     private void SeciliGununSaatleriniYukle()
     {
+        _seciliGunEtiketi.Text = CalismaSaati.GunAdi(_seciliGun);
         CalismaSaati? saat = _seciliSube?.CalismaSaatiGetir(SeciliGun);
         TimeOnly acilis = saat?.Acilis ?? new TimeOnly(9, 0);
         TimeOnly kapanis = saat?.Kapanis ?? new TimeOnly(17, 0);
@@ -538,17 +586,234 @@ public class KurumlarEkrani : UserControl
         Format = DateTimePickerFormat.Custom,
         CustomFormat = "HH:mm",
         ShowUpDown = true,
-        Width = 72,
+        Width = 78,
+        Font = new Font("Segoe UI", 10.5f),
         Value = DateTime.Today.AddHours(9),
-        Margin = new Padding(0, 6, 6, 0)
+        Margin = new Padding(0, 2, 14, 0)
     };
 
     private static Button KucukButon(string metin, bool birincil)
     {
         Button buton = Tema.Buton(metin, birincil);
-        buton.MinimumSize = new Size(80, 32);
-        buton.Margin = new Padding(0, 4, 6, 0);
+        buton.MinimumSize = new Size(96, 34);
+        buton.Margin = new Padding(0, 0, 8, 0);
         return buton;
+    }
+
+    private static Label KucukEtiket(string metin) => new()
+    {
+        Text = metin,
+        AutoSize = true,
+        ForeColor = Tema.SolukYazi,
+        Margin = new Padding(0, 8, 6, 0)
+    };
+
+    private static Label IpucuEtiketi(string metin) => new()
+    {
+        Text = metin,
+        AutoSize = true,
+        Font = Tema.Kucuk,
+        ForeColor = Tema.SolukYazi,
+        Margin = new Padding(4, 10, 0, 0)
+    };
+
+    /// <summary>Kontrolleri soldan sağa tek satırda dizer.</summary>
+    private static FlowLayoutPanel YatayDizi(params Control[] kontroller)
+    {
+        var dizi = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false, Margin = new Padding(0) };
+        dizi.Controls.AddRange(kontroller);
+        return dizi;
+    }
+
+    /// <summary>
+    /// Düzenleme araçlarını açık gri, yuvarlak köşeli bir şeridin içine iki satır halinde koyar
+    /// (üstte giriş alanları, altta butonlar). Listeden görsel olarak ayrılır.
+    /// </summary>
+    private static Control DuzenlemeSeridi(Control ustSatir, Control altSatir)
+    {
+        var serit = new KartPanel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = Tema.Arkaplan,
+            KoseYaricapi = 10,
+            Padding = new Padding(12, 10, 12, 8),
+            Margin = new Padding(0, 8, 0, 0)
+        };
+        var ic = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 2, Margin = new Padding(0) };
+        ic.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
+        ic.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        ic.Controls.Add(ustSatir, 0, 0);
+        ic.Controls.Add(altSatir, 0, 1);
+        serit.Controls.Add(ic);
+        return serit;
+    }
+
+    /// <summary>Simgeli bölüm başlığı: [simge] Çalışma Saatleri</summary>
+    private static Control KutucukBasligi(string ikon, string metin)
+    {
+        var baslik = new Panel { Dock = DockStyle.Fill, Margin = new Padding(0) };
+        baslik.Controls.Add(new Label
+        {
+            Text = metin,
+            Dock = DockStyle.Fill,
+            Font = Tema.Kalin,
+            ForeColor = Tema.Lacivert,
+            TextAlign = ContentAlignment.MiddleLeft
+        });
+        baslik.Controls.Add(new Label
+        {
+            Text = ikon,
+            Dock = DockStyle.Left,
+            Width = 28,
+            Font = Tema.Ikon,
+            ForeColor = Tema.Vurgu,
+            TextAlign = ContentAlignment.MiddleLeft
+        });
+        return baslik;
+    }
+
+    /// <summary>
+    /// Başlık + liste + (varsa) düzenleme şeridinden oluşan, çerçeveli bir kutu.
+    /// araclar null ise (salt okunur kullanıcı) düzenleme şeridi eklenmez.
+    /// </summary>
+    private static Control Kutucuk(string ikon, string baslik, Control liste, Control? araclar, Padding disBosluk)
+    {
+        var kutu = new KartPanel { Dock = DockStyle.Fill, Padding = new Padding(14, 8, 14, 12), Margin = disBosluk };
+        var ic = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, Margin = new Padding(0) };
+        ic.RowStyles.Add(new RowStyle(SizeType.Absolute, 38));
+        ic.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        ic.RowStyles.Add(new RowStyle(SizeType.Absolute, araclar is null ? 0 : 108));
+        ic.Controls.Add(KutucukBasligi(ikon, baslik), 0, 0);
+        ic.Controls.Add(liste, 0, 1);
+        if (araclar is not null)
+            ic.Controls.Add(araclar, 0, 2);
+        kutu.Controls.Add(ic);
+        return kutu;
+    }
+
+    /// <summary>Satırlarını kendimiz çizdiğimiz liste (DrawMode = OwnerDrawFixed).</summary>
+    private static ListBox CizilenListe(DrawItemEventHandler ciz)
+    {
+        var liste = new ListBox
+        {
+            Dock = DockStyle.Fill,
+            BorderStyle = BorderStyle.None,
+            IntegralHeight = false,
+            DrawMode = DrawMode.OwnerDrawFixed,
+            ItemHeight = 34,
+            Font = Tema.Normal,
+            Margin = new Padding(0)
+        };
+        liste.DrawItem += ciz;
+        return liste;
+    }
+
+    /// <summary>Satır zemini: seçiliyse açık turkuaz + solda turkuaz şerit; altında ince çizgi.</summary>
+    private static void SatirZemininiCiz(Graphics g, Rectangle alan, bool secili, bool sonSatir, Color zemin)
+    {
+        using (var firca = new SolidBrush(secili ? Tema.VurguAcik : zemin))
+            g.FillRectangle(firca, alan);
+        if (secili)
+        {
+            using var serit = new SolidBrush(Tema.Vurgu);
+            g.FillRectangle(serit, alan.X, alan.Y + 6, 3, alan.Height - 12);
+        }
+        if (!sonSatir)
+        {
+            using var kalem = new Pen(Tema.Cizgi);
+            g.DrawLine(kalem, alan.X + 12, alan.Bottom - 1, alan.Right - 8, alan.Bottom - 1);
+        }
+    }
+
+    /// <summary>Liste boşken gösterilen soluk açıklama satırı ("Bir şube seçin" gibi).</summary>
+    private static void AciklamaSatiriCiz(Graphics g, Rectangle alan, object? oge, Color zemin)
+    {
+        using (var firca = new SolidBrush(zemin))
+            g.FillRectangle(firca, alan);
+        TextRenderer.DrawText(g, oge?.ToString() ?? "", Tema.Normal, new Rectangle(alan.X + 12, alan.Y, alan.Width - 12, alan.Height),
+            Tema.SolukYazi, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+    }
+
+    /// <summary>Çalışma saati satırı:  Pazartesi ............ ● 10:00 – 17:00   veya   Cumartesi ...... (Kapalı)</summary>
+    private void GunSatiriniCiz(object? sender, DrawItemEventArgs e)
+    {
+        if (e.Index < 0 || e.Index >= _saatListesi.Items.Count)
+            return;
+        Graphics g = e.Graphics;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        Rectangle alan = e.Bounds;
+
+        if (_saatListesi.Items[e.Index] is not GunSatiri satir)
+        {
+            AciklamaSatiriCiz(g, alan, _saatListesi.Items[e.Index], _saatListesi.BackColor);
+            return;
+        }
+
+        bool secili = (e.State & DrawItemState.Selected) != 0;
+        SatirZemininiCiz(g, alan, secili, e.Index == _saatListesi.Items.Count - 1, _saatListesi.BackColor);
+
+        TextRenderer.DrawText(g, CalismaSaati.GunAdi(satir.Gun), secili ? Tema.Kalin : Tema.Normal,
+            new Rectangle(alan.X + 14, alan.Y, 140, alan.Height), secili ? Tema.VurguKoyu : Tema.Yazi,
+            TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
+
+        if (satir.Saat is { } saat)
+        {
+            string metin = $"{saat.Acilis:HH:mm} – {saat.Kapanis:HH:mm}";
+            int metinGenisligi = TextRenderer.MeasureText(metin, Tema.Normal).Width;
+            int x = alan.Right - metinGenisligi - 10;
+            using (var nokta = new SolidBrush(Tema.DurumRengi(RandevuDurumu.Onaylandi)))   // yeşil "açık" noktası
+                g.FillEllipse(nokta, x - 14, alan.Y + alan.Height / 2 - 4, 8, 8);
+            TextRenderer.DrawText(g, metin, Tema.Normal, new Rectangle(x, alan.Y, metinGenisligi + 4, alan.Height),
+                Tema.Yazi, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
+        }
+        else
+        {
+            int hapGenisligi = TextRenderer.MeasureText("Kapalı", Tema.Kucuk).Width + 18;
+            Tema.DurumHapiCiz(g, new Rectangle(alan.Right - hapGenisligi - 8, alan.Y, hapGenisligi, alan.Height),
+                "Kapalı", Tema.SolukYazi);
+        }
+    }
+
+    /// <summary>Bölüm satırı:  [K] Kardiyoloji ............ (2 çalışan)   — boş bölüm "Boş" etiketiyle gösterilir.</summary>
+    private void BolumSatiriniCiz(object? sender, DrawItemEventArgs e)
+    {
+        if (e.Index < 0 || e.Index >= _bolumListesi.Items.Count)
+            return;
+        Graphics g = e.Graphics;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        Rectangle alan = e.Bounds;
+
+        if (_bolumListesi.Items[e.Index] is not Bolum bolum)
+        {
+            AciklamaSatiriCiz(g, alan, _bolumListesi.Items[e.Index], _bolumListesi.BackColor);
+            return;
+        }
+
+        bool secili = (e.State & DrawItemState.Selected) != 0;
+        SatirZemininiCiz(g, alan, secili, e.Index == _bolumListesi.Items.Count - 1, _bolumListesi.BackColor);
+
+        // Solda baş harf kutucuğu
+        var harfKutusu = new Rectangle(alan.X + 12, alan.Y + (alan.Height - 24) / 2, 24, 24);
+        using (GraphicsPath yol = Tema.YuvarlakYol(harfKutusu, 6))
+        using (var firca = new SolidBrush(secili ? Color.White : Tema.VurguAcik))
+            g.FillPath(firca, yol);
+        string harf = bolum.Ad.Trim().Length > 0 ? bolum.Ad.Trim()[0].ToString().ToUpper(new System.Globalization.CultureInfo("tr-TR")) : "";
+        TextRenderer.DrawText(g, harf, Tema.Kalin, harfKutusu, Tema.Vurgu,
+            TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+
+        // Sağda çalışan sayısı etiketi
+        int sayi = _bolumCalisanSayilari.GetValueOrDefault(bolum.Id);
+        string hap = sayi > 0 ? $"{sayi} çalışan" : "Boş";
+        int hapGenisligi = TextRenderer.MeasureText(hap, Tema.Kucuk).Width + 18;
+        Tema.DurumHapiCiz(g, new Rectangle(alan.Right - hapGenisligi - 8, alan.Y, hapGenisligi, alan.Height),
+            hap, sayi > 0 ? Tema.Vurgu : Tema.SolukYazi);
+
+        // Ortada bölüm adı
+        int x = harfKutusu.Right + 10;
+        TextRenderer.DrawText(g, bolum.Ad, secili ? Tema.Kalin : Tema.Normal,
+            new Rectangle(x, alan.Y, Math.Max(1, alan.Right - hapGenisligi - 16 - x), alan.Height),
+            secili ? Tema.VurguKoyu : Tema.Yazi,
+            TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
     }
 
     /// <summary>Kontrolü köşeleri yuvarlak, beyaz bir "kart" panelin içine koyar.</summary>
